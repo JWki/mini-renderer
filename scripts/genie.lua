@@ -155,7 +155,7 @@ solution "mini"
     group "Runtime"
         -- ---------------------
         -- Main executable
-        project "Runtime"
+        project "mini"
             kind "WindowedApp"
             flags {
                 "WinMain"
