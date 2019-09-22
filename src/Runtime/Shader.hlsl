@@ -1,26 +1,32 @@
-struct vs_in
+struct VS_In
 {
-    float2 P : POSITION;
-    float3 Col : COLOR;
+    float3 position : POSITION;
+    float3 normal   : NORMAL;
 };
 
-struct vs_out
+struct VS_Out
 {
-    float4 SV_P : SV_POSITION;
-    float3 Col : COLOR;
+    float4 position : SV_POSITION;
+    float3 color    : COLOR;
 };
 
-vs_out VSMain(vs_in In)
+cbuffer Constants : register(b0)
 {
-    vs_out Out;
+    float4x4 mvp;
+};
 
-    Out.SV_P = float4(In.P, 0.0, 1.0);
-    Out.Col = In.Col;
 
-    return Out;
+VS_Out VSMain(VS_In input)
+{
+    VS_Out output;
+
+    output.color = input.normal * 0.5f + 0.5f;
+    output.position = mul(mvp, float4(input.position, 1.0f));
+
+    return output;
 }
 
-float4 PSMain(vs_out In) : SV_TARGET
+float4 PSMain(VS_Out input) : SV_TARGET
 {
-    return float4(sqrt(In.Col), 1.0);
+    return float4(input.color, 1.0);
 }
