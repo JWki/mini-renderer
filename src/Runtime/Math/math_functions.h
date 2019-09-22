@@ -4,7 +4,7 @@
 #include <math.h>
 #include <memory.h>
 
-namespace gt
+namespace mini
 {
     namespace math
     {
@@ -191,44 +191,44 @@ namespace gt
 // -----------------------------------------------------------
 // -----------------------------------------------------------
 
-gt::math::vec2f_t gt::math::operator + (gt::math::vec2f_t const& lhs, gt::math::vec2f_t const& rhs)
+mini::math::vec2f_t mini::math::operator + (mini::math::vec2f_t const& lhs, mini::math::vec2f_t const& rhs)
 {
     return vec2f_t(lhs.x + rhs.x, lhs.y + rhs.y);
 }
 
-gt::math::vec2f_t gt::math::operator - (gt::math::vec2f_t const& lhs, gt::math::vec2f_t const& rhs)
+mini::math::vec2f_t mini::math::operator - (mini::math::vec2f_t const& lhs, mini::math::vec2f_t const& rhs)
 {
     return vec2f_t(lhs.x - rhs.x, lhs.y - rhs.y);
 }
 
-gt::math::vec2f_t gt::math::operator * (gt::math::vec2f_t const& lhs, gt::math::vec2f_t const& rhs)
+mini::math::vec2f_t mini::math::operator * (mini::math::vec2f_t const& lhs, mini::math::vec2f_t const& rhs)
 {
     return vec2f_t(lhs.x * rhs.x, lhs.y * rhs.y);
 }
 
-gt::math::vec2f_t gt::math::operator / (gt::math::vec2f_t const& lhs, gt::math::vec2f_t const& rhs)
+mini::math::vec2f_t mini::math::operator / (mini::math::vec2f_t const& lhs, mini::math::vec2f_t const& rhs)
 {
     return vec2f_t(lhs.x / rhs.x, lhs.y / rhs.y);
 }
 
 // -- 
 
-gt::math::vec2f_t gt::math::operator + (gt::math::vec2f_t const& lhs, float rhs)
+mini::math::vec2f_t mini::math::operator + (mini::math::vec2f_t const& lhs, float rhs)
 {
     return vec2f_t(lhs.x + rhs, lhs.y + rhs);
 }
 
-gt::math::vec2f_t gt::math::operator - (gt::math::vec2f_t const& lhs, float rhs)
+mini::math::vec2f_t mini::math::operator - (mini::math::vec2f_t const& lhs, float rhs)
 {
     return vec2f_t(lhs.x - rhs, lhs.y - rhs);
 }
 
-gt::math::vec2f_t gt::math::operator * (gt::math::vec2f_t const& lhs, float rhs)
+mini::math::vec2f_t mini::math::operator * (mini::math::vec2f_t const& lhs, float rhs)
 {
     return vec2f_t(lhs.x * rhs, lhs.y * rhs);
 }
 
-gt::math::vec2f_t gt::math::operator / (gt::math::vec2f_t const& lhs, float rhs)
+mini::math::vec2f_t mini::math::operator / (mini::math::vec2f_t const& lhs, float rhs)
 {
     return vec2f_t(lhs.x / rhs, lhs.y / rhs);
 }
@@ -236,105 +236,105 @@ gt::math::vec2f_t gt::math::operator / (gt::math::vec2f_t const& lhs, float rhs)
 // ---------------------
 
 
-gt::math::vec3f_t gt::math::operator + (gt::math::vec3f_t const& lhs, gt::math::vec3f_t const& rhs)
+mini::math::vec3f_t mini::math::operator + (mini::math::vec3f_t const& lhs, mini::math::vec3f_t const& rhs)
 {
     return vec3f_t(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z);
 }
 
-gt::math::vec3f_t gt::math::operator - (gt::math::vec3f_t const& lhs, gt::math::vec3f_t const& rhs)
+mini::math::vec3f_t mini::math::operator - (mini::math::vec3f_t const& lhs, mini::math::vec3f_t const& rhs)
 {
     return vec3f_t(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z);
 }
 
-gt::math::vec3f_t gt::math::operator * (gt::math::vec3f_t const& lhs, gt::math::vec3f_t const& rhs)
+mini::math::vec3f_t mini::math::operator * (mini::math::vec3f_t const& lhs, mini::math::vec3f_t const& rhs)
 {
     return vec3f_t(lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z);
 }
 
-gt::math::vec3f_t gt::math::operator / (gt::math::vec3f_t const& lhs, gt::math::vec3f_t const& rhs)
+mini::math::vec3f_t mini::math::operator / (mini::math::vec3f_t const& lhs, mini::math::vec3f_t const& rhs)
 {
     return vec3f_t(lhs.x / rhs.x, lhs.y / rhs.y, lhs.z / rhs.z);
 }
 
 // -- 
 
-gt::math::vec3f_t gt::math::operator + (gt::math::vec3f_t const& lhs, float rhs)
+mini::math::vec3f_t mini::math::operator + (mini::math::vec3f_t const& lhs, float rhs)
 {
     return vec3f_t(lhs.x + rhs, lhs.y + rhs, lhs.z + rhs);
 }
 
-gt::math::vec3f_t gt::math::operator - (gt::math::vec3f_t const& lhs, float rhs)
+mini::math::vec3f_t mini::math::operator - (mini::math::vec3f_t const& lhs, float rhs)
 {
     return vec3f_t(lhs.x - rhs, lhs.y - rhs, lhs.z - rhs);
 }
 
-gt::math::vec3f_t gt::math::operator * (gt::math::vec3f_t const& lhs, float rhs)
+mini::math::vec3f_t mini::math::operator * (mini::math::vec3f_t const& lhs, float rhs)
 {
     return vec3f_t(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs);
 }
 
-gt::math::vec3f_t gt::math::operator / (gt::math::vec3f_t const& lhs, float rhs)
+mini::math::vec3f_t mini::math::operator / (mini::math::vec3f_t const& lhs, float rhs)
 {
     return vec3f_t(lhs.x / rhs, lhs.y / rhs, lhs.z / rhs);
 }
 
 // ---------------------
 
-gt::math::vec4f_t gt::math::operator + (gt::math::vec4f_t const& lhs, gt::math::vec4f_t const& rhs)
+mini::math::vec4f_t mini::math::operator + (mini::math::vec4f_t const& lhs, mini::math::vec4f_t const& rhs)
 {
     return vec4f_t(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z, lhs.w + rhs.w);
 }
 
-gt::math::vec4f_t gt::math::operator - (gt::math::vec4f_t const& lhs, gt::math::vec4f_t const& rhs)
+mini::math::vec4f_t mini::math::operator - (mini::math::vec4f_t const& lhs, mini::math::vec4f_t const& rhs)
 {
     return vec4f_t(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z, lhs.w - rhs.w);
 }
 
-gt::math::vec4f_t gt::math::operator * (gt::math::vec4f_t const& lhs, gt::math::vec4f_t const& rhs)
+mini::math::vec4f_t mini::math::operator * (mini::math::vec4f_t const& lhs, mini::math::vec4f_t const& rhs)
 {
     return vec4f_t(lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z, lhs.w * rhs.w);
 }
 
-gt::math::vec4f_t gt::math::operator / (gt::math::vec4f_t const& lhs, gt::math::vec4f_t const& rhs)
+mini::math::vec4f_t mini::math::operator / (mini::math::vec4f_t const& lhs, mini::math::vec4f_t const& rhs)
 {
     return vec4f_t(lhs.x / rhs.x, lhs.y / rhs.y, lhs.z / rhs.z, lhs.w / rhs.w);
 }
 
 // -- 
 
-gt::math::vec4f_t gt::math::operator + (gt::math::vec4f_t const& lhs, float rhs)
+mini::math::vec4f_t mini::math::operator + (mini::math::vec4f_t const& lhs, float rhs)
 {
     return vec4f_t(lhs.x + rhs, lhs.y + rhs, lhs.z + rhs, lhs.w + rhs);
 }
 
-gt::math::vec4f_t gt::math::operator - (gt::math::vec4f_t const& lhs, float rhs)
+mini::math::vec4f_t mini::math::operator - (mini::math::vec4f_t const& lhs, float rhs)
 {
     return vec4f_t(lhs.x - rhs, lhs.y - rhs, lhs.z - rhs, lhs.w - rhs);
 }
 
-gt::math::vec4f_t gt::math::operator * (gt::math::vec4f_t const& lhs, float rhs)
+mini::math::vec4f_t mini::math::operator * (mini::math::vec4f_t const& lhs, float rhs)
 {
     return vec4f_t(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs, lhs.w * rhs);
 }
 
-gt::math::vec4f_t gt::math::operator / (gt::math::vec4f_t const& lhs, float rhs)
+mini::math::vec4f_t mini::math::operator / (mini::math::vec4f_t const& lhs, float rhs)
 {
     return vec4f_t(lhs.x / rhs, lhs.y / rhs, lhs.z / rhs, lhs.w / rhs);
 }
 
 // --
 
-gt::math::vec2f_t gt::math::operator - (gt::math::vec2f_t const& vec)
+mini::math::vec2f_t mini::math::operator - (mini::math::vec2f_t const& vec)
 {
     return vec2f_t(-vec.x, -vec.y);
 }
 
-gt::math::vec3f_t gt::math::operator - (gt::math::vec3f_t const& vec)
+mini::math::vec3f_t mini::math::operator - (mini::math::vec3f_t const& vec)
 {
     return vec3f_t(-vec.x, -vec.y, -vec.z);
 }
 
-gt::math::vec4f_t gt::math::operator - (gt::math::vec4f_t const& vec)
+mini::math::vec4f_t mini::math::operator - (mini::math::vec4f_t const& vec)
 {
     return vec4f_t(-vec.x, -vec.y, -vec.z, -vec.w);
 }
@@ -342,7 +342,7 @@ gt::math::vec4f_t gt::math::operator - (gt::math::vec4f_t const& vec)
 // -----------------------------------------------------------
 // -----------------------------------------------------------
 
-gt::math::vec4f_t gt::math::operator * (gt::math::mat4x4f_t const& lhs, gt::math::vec4f_t const& rhs)
+mini::math::vec4f_t mini::math::operator * (mini::math::mat4x4f_t const& lhs, mini::math::vec4f_t const& rhs)
 {
     return vec4f_t(
         dot(row(lhs, 0), rhs),
@@ -352,7 +352,7 @@ gt::math::vec4f_t gt::math::operator * (gt::math::mat4x4f_t const& lhs, gt::math
     );
 }
 
-gt::math::quatf_t gt::math::operator * (gt::math::quatf_t const& lhs, gt::math::quatf_t const& rhs)
+mini::math::quatf_t mini::math::operator * (mini::math::quatf_t const& lhs, mini::math::quatf_t const& rhs)
 {
     return quatf_t(
         lhs.r * rhs.r - lhs.i * rhs.i - lhs.j * rhs.j - lhs.k * rhs.k,
@@ -362,7 +362,7 @@ gt::math::quatf_t gt::math::operator * (gt::math::quatf_t const& lhs, gt::math::
     );
 }
 
-gt::math::mat4x4f_t gt::math::operator * (gt::math::mat4x4f_t const& lhs, gt::math::mat4x4f_t const& rhs)
+mini::math::mat4x4f_t mini::math::operator * (mini::math::mat4x4f_t const& lhs, mini::math::mat4x4f_t const& rhs)
 {
     mat4x4f_t result;
 
@@ -393,20 +393,20 @@ gt::math::mat4x4f_t gt::math::operator * (gt::math::mat4x4f_t const& lhs, gt::ma
     return result;
 }
 
-gt::math::vec3f_t gt::math::transform_pos(gt::math::mat4x4f_t const& transform, gt::math::vec3f_t const& position)
+mini::math::vec3f_t mini::math::transform_pos(mini::math::mat4x4f_t const& transform, mini::math::vec3f_t const& position)
 {
     return (transform * vec4f_t(position, 1.0f)).xyz;
 }
 
-gt::math::vec3f_t gt::math::transform_dir(gt::math::mat4x4f_t const& transform, gt::math::vec3f_t const& direction)
+mini::math::vec3f_t mini::math::transform_dir(mini::math::mat4x4f_t const& transform, mini::math::vec3f_t const& direction)
 {
     return (transform * vec4f_t(direction, 0.0f)).xyz;
 
 }
 
-gt::math::mat4x4f_t gt::math::transpose(gt::math::mat4x4f_t const& mat)
+mini::math::mat4x4f_t mini::math::transpose(mini::math::mat4x4f_t const& mat)
 {
-    gt::math::mat4x4f_t res;
+    mini::math::mat4x4f_t res;
     for (auto i = 0; i < 4; ++i) {
         for (auto j = 0; j < 4; ++j) {
             res[i][j] = mat[j][i];
@@ -415,7 +415,7 @@ gt::math::mat4x4f_t gt::math::transpose(gt::math::mat4x4f_t const& mat)
     return res;
 }
 
-gt::math::mat4x4f_t gt::math::quat_to_mat(gt::math::quatf_t const& quat)
+mini::math::mat4x4f_t mini::math::quat_to_mat(mini::math::quatf_t const& quat)
 {
     mat4x4f_t result;
 
@@ -447,7 +447,7 @@ gt::math::mat4x4f_t gt::math::quat_to_mat(gt::math::quatf_t const& quat)
     return transpose(result);
 }
 
-gt::math::quatf_t gt::math::quat_from_mat(mat4x4f_t const& mat)
+mini::math::quatf_t mini::math::quat_from_mat(mat4x4f_t const& mat)
 {
     // http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
     // @note should assert that mat is orthonormal
@@ -489,14 +489,14 @@ gt::math::quatf_t gt::math::quat_from_mat(mat4x4f_t const& mat)
 // ---- 
 
 
-gt::math::mat4x4f_t gt::math::make_translation(vec3f_t const& translation)
+mini::math::mat4x4f_t mini::math::make_translation(vec3f_t const& translation)
 {
     mat4x4f_t result;
     result.columns[3] = vec4f_t(translation, 1.0f);
     return result;
 }
 
-gt::math::mat4x4f_t gt::math::make_scale(vec3f_t const& scale)
+mini::math::mat4x4f_t mini::math::make_scale(vec3f_t const& scale)
 {
     mat4x4f_t result;
     result[0][0] = scale.x;
@@ -506,7 +506,7 @@ gt::math::mat4x4f_t gt::math::make_scale(vec3f_t const& scale)
 }
 
 
-gt::math::mat4x4f_t gt::math::make_rotation(vec3f_t const& axis, float rad)
+mini::math::mat4x4f_t mini::math::make_rotation(vec3f_t const& axis, float rad)
 {
     mat4x4f_t rotate;
     mat4x4f_t base;
@@ -549,7 +549,7 @@ gt::math::mat4x4f_t gt::math::make_rotation(vec3f_t const& axis, float rad)
 }
 
 
-gt::math::mat4x4f_t gt::math::make_perspective_proj(float fovInRad, float aspectRatio, float zNear, float zFar)
+mini::math::mat4x4f_t mini::math::make_perspective_proj(float fovInRad, float aspectRatio, float zNear, float zFar)
 {
     mat4x4f_t result;
 
@@ -565,7 +565,7 @@ gt::math::mat4x4f_t gt::math::make_perspective_proj(float fovInRad, float aspect
     return result;
 }
 
-gt::math::mat4x4f_t gt::math::make_ortho_proj(float left, float right, float bottom, float top, float zNear, float zFar)
+mini::math::mat4x4f_t mini::math::make_ortho_proj(float left, float right, float bottom, float top, float zNear, float zFar)
 {
     mat4x4f_t result;
 
@@ -579,7 +579,7 @@ gt::math::mat4x4f_t gt::math::make_ortho_proj(float left, float right, float bot
     return result;
 }
 
-gt::math::mat4x4f_t gt::math::make_lookat(gt::math::vec3f_t const& from, gt::math::vec3f_t const& to, gt::math::vec3f_t const& up)
+mini::math::mat4x4f_t mini::math::make_lookat(mini::math::vec3f_t const& from, mini::math::vec3f_t const& to, mini::math::vec3f_t const& up)
 {
     auto direction = normalize(to - from);
     auto x = normalize(cross(up, direction));
@@ -596,22 +596,22 @@ gt::math::mat4x4f_t gt::math::make_lookat(gt::math::vec3f_t const& from, gt::mat
 // -----------------------------------------------------------
 // -----------------------------------------------------------
 
-float gt::math::dot(gt::math::vec2f_t const& lhs, gt::math::vec2f_t const& rhs)
+float mini::math::dot(mini::math::vec2f_t const& lhs, mini::math::vec2f_t const& rhs)
 {
     return lhs.x* rhs.x + lhs.y * rhs.y;
 }
 
-float gt::math::dot(gt::math::vec3f_t const& lhs, gt::math::vec3f_t const& rhs)
+float mini::math::dot(mini::math::vec3f_t const& lhs, mini::math::vec3f_t const& rhs)
 {
     return lhs.x* rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
 }
 
-float gt::math::dot(gt::math::vec4f_t const& lhs, gt::math::vec4f_t const& rhs)
+float mini::math::dot(mini::math::vec4f_t const& lhs, mini::math::vec4f_t const& rhs)
 {
     return lhs.x* rhs.x + lhs.y * rhs.y + lhs.z * rhs.z + lhs.w * rhs.w;
 }
 
-gt::math::vec3f_t gt::math::cross(gt::math::vec3f_t const& lhs, gt::math::vec3f_t const& rhs)
+mini::math::vec3f_t mini::math::cross(mini::math::vec3f_t const& lhs, mini::math::vec3f_t const& rhs)
 {
     return vec3f_t(
         lhs.y * rhs.z - rhs.y * lhs.z,
@@ -620,36 +620,36 @@ gt::math::vec3f_t gt::math::cross(gt::math::vec3f_t const& lhs, gt::math::vec3f_
     );
 }
 
-gt::math::vec2f_t gt::math::normalize(gt::math::vec2f_t const& vec)
+mini::math::vec2f_t mini::math::normalize(mini::math::vec2f_t const& vec)
 {
     return vec / length(vec);
 }
 
-gt::math::vec2f_t gt::math::normalize_safe(gt::math::vec2f_t const& vec, float eps)
+mini::math::vec2f_t mini::math::normalize_safe(mini::math::vec2f_t const& vec, float eps)
 {
     auto sqrLen = dot(vec, vec);
     if (sqrLen <= eps * eps) { return vec2f_t(); }
     return normalize(vec);
 }
 
-gt::math::vec3f_t gt::math::normalize(gt::math::vec3f_t const& vec)
+mini::math::vec3f_t mini::math::normalize(mini::math::vec3f_t const& vec)
 {
     return vec / length(vec);
 }
 
-gt::math::vec3f_t gt::math::normalize_safe(gt::math::vec3f_t const& vec, float eps)
+mini::math::vec3f_t mini::math::normalize_safe(mini::math::vec3f_t const& vec, float eps)
 {
     auto sqrLen = dot(vec, vec);
     if (sqrLen <= eps * eps) { return vec3f_t(); }
     return normalize(vec);
 }
 
-gt::math::vec4f_t gt::math::normalize(gt::math::vec4f_t const& vec)
+mini::math::vec4f_t mini::math::normalize(mini::math::vec4f_t const& vec)
 {
     return vec / length(vec);
 }
 
-gt::math::vec4f_t gt::math::normalize_safe(gt::math::vec4f_t const& vec, float eps)
+mini::math::vec4f_t mini::math::normalize_safe(mini::math::vec4f_t const& vec, float eps)
 {
     auto sqrLen = squared_length(vec);
     if (sqrLen <= eps * eps) { return vec4f_t(); }
@@ -657,55 +657,55 @@ gt::math::vec4f_t gt::math::normalize_safe(gt::math::vec4f_t const& vec, float e
 }
 
 
-float gt::math::length(gt::math::vec2f_t const& vec)
+float mini::math::length(mini::math::vec2f_t const& vec)
 {
     return sqrt(dot(vec, vec));
 }
 
-float gt::math::squared_length(gt::math::vec2f_t const& vec)
+float mini::math::squared_length(mini::math::vec2f_t const& vec)
 {
     return dot(vec, vec);
 }
 
-float gt::math::length(gt::math::vec3f_t const& vec)
+float mini::math::length(mini::math::vec3f_t const& vec)
 {
     return sqrt(dot(vec, vec));
 }
 
-float gt::math::squared_length(gt::math::vec3f_t const& vec)
+float mini::math::squared_length(mini::math::vec3f_t const& vec)
 {
     return dot(vec, vec);
 }
 
 
-float gt::math::length(gt::math::vec4f_t const& vec)
+float mini::math::length(mini::math::vec4f_t const& vec)
 {
     return sqrt(dot(vec, vec));
 }
 
-float gt::math::squared_length(gt::math::vec4f_t const& vec)
+float mini::math::squared_length(mini::math::vec4f_t const& vec)
 {
     return dot(vec, vec);
 }
 
-float gt::math::distance(gt::math::vec2f_t const& a, gt::math::vec2f_t const& b)
+float mini::math::distance(mini::math::vec2f_t const& a, mini::math::vec2f_t const& b)
 {
     return length(a - b);
 }
 
-float gt::math::distance(gt::math::vec3f_t const& a, gt::math::vec3f_t const& b)
+float mini::math::distance(mini::math::vec3f_t const& a, mini::math::vec3f_t const& b)
 {
     return length(a - b);
 }
 
-float gt::math::distance(gt::math::vec4f_t const& a, gt::math::vec4f_t const& b)
+float mini::math::distance(mini::math::vec4f_t const& a, mini::math::vec4f_t const& b)
 {
     return length(a - b);
 }
 
 // ---
 
-gt::math::quatf_t gt::math::normalize(gt::math::quatf_t const& quat)
+mini::math::quatf_t mini::math::normalize(mini::math::quatf_t const& quat)
 {
     const auto invLen = 1.0f / sqrt(quat.w * quat.w + quat.x * quat.x + quat.y * quat.y + quat.z * quat.z);
 
@@ -717,7 +717,7 @@ gt::math::quatf_t gt::math::normalize(gt::math::quatf_t const& quat)
     );
 }
 
-gt::math::quatf_t gt::math::normalize_safe(gt::math::quatf_t const& quat, float eps)
+mini::math::quatf_t mini::math::normalize_safe(mini::math::quatf_t const& quat, float eps)
 {
     const auto d = quat.w * quat.w + quat.x * quat.x + quat.y * quat.y + quat.z * quat.z;
     if (d < eps * eps) {
@@ -733,7 +733,7 @@ gt::math::quatf_t gt::math::normalize_safe(gt::math::quatf_t const& quat, float 
     );
 }
 
-gt::math::quatf_t gt::math::inverse(gt::math::quatf_t const& quat)
+mini::math::quatf_t mini::math::inverse(mini::math::quatf_t const& quat)
 {
     const auto d = quat.w * quat.w + quat.x * quat.x + quat.y * quat.y + quat.z * quat.z;
     const auto invD = 1.0f / d;
@@ -745,7 +745,7 @@ gt::math::quatf_t gt::math::inverse(gt::math::quatf_t const& quat)
     );
 }
 
-gt::math::quatf_t gt::math::angle_axis(gt::math::vec3f_t const& axis, float rad)
+mini::math::quatf_t mini::math::angle_axis(mini::math::vec3f_t const& axis, float rad)
 {
     auto normalized_axis = normalize(axis); // @NOTE just assume this is already normalized?
     quatf_t res;
@@ -760,7 +760,7 @@ gt::math::quatf_t gt::math::angle_axis(gt::math::vec3f_t const& axis, float rad)
 // -----------------------------------------------------------
 // -----------------------------------------------------------
 
-gt::math::mat4x4f_t gt::math::inverse(gt::math::mat4x4f_t const& mat)
+mini::math::mat4x4f_t mini::math::inverse(mini::math::mat4x4f_t const& mat)
 {
     mat4x4f_t result;
 
@@ -897,12 +897,12 @@ gt::math::mat4x4f_t gt::math::inverse(gt::math::mat4x4f_t const& mat)
 
 // --
 
-gt::math::vec4f_t gt::math::column(gt::math::mat4x4f_t const& mat, int index)
+mini::math::vec4f_t mini::math::column(mini::math::mat4x4f_t const& mat, int index)
 {
     return mat.columns[index];
 }
 
-gt::math::vec4f_t gt::math::row(gt::math::mat4x4f_t const& mat, int index)
+mini::math::vec4f_t mini::math::row(mini::math::mat4x4f_t const& mat, int index)
 {
     return vec4f_t(
         mat[0][index],
@@ -916,84 +916,84 @@ gt::math::vec4f_t gt::math::row(gt::math::mat4x4f_t const& mat, int index)
 // -----------------------------------------------------------
 
 
-float gt::math::RadToDeg(float rad)
+float mini::math::RadToDeg(float rad)
 {
     return rad * (180.0f / PI);
 }
 
-float gt::math::DegToRad(float deg)
+float mini::math::DegToRad(float deg)
 {
     return deg * (PI / 180.0f);
 }
 
-double gt::math::DegToRad(double deg)
+double mini::math::DegToRad(double deg)
 {
     return deg * (static_cast<double>(PI) / 180.0);
 }
 
-double gt::math::RadToDeg(double rad)
+double mini::math::RadToDeg(double rad)
 {
     return rad * (180.0 / static_cast<double>(PI));
 }
 
-float gt::math::sqrt(float v)
+float mini::math::sqrt(float v)
 {
     return ::sqrtf(v);
 }
-double gt::math::sqrt(double v)
+double mini::math::sqrt(double v)
 {
     return ::sqrt(v);
 }
 
-float gt::math::sin(float v)
+float mini::math::sin(float v)
 {
     return ::sinf(v);
 }
 
-float gt::math::cos(float v)
+float mini::math::cos(float v)
 {
     return ::cosf(v);
 }
 
-float gt::math::tan(float v)
+float mini::math::tan(float v)
 {
     return ::tanf(v);
 }
 
-float gt::math::acos(float v)
+float mini::math::acos(float v)
 {
     return ::acosf(v);
 }
 
-float gt::math::asin(float v)
+float mini::math::asin(float v)
 {
     return ::asinf(v);
 }
 
-double gt::math::sin(double v)
+double mini::math::sin(double v)
 {
     return ::sin(v);
 }
-double gt::math::cos(double v)
+double mini::math::cos(double v)
 {
     return ::cos(v);
 }
-double gt::math::tan(double v)
+double mini::math::tan(double v)
 {
     return ::tan(v);
 }
-double gt::math::acos(double v)
+double mini::math::acos(double v)
 {
     return ::acos(v);
 }
-double gt::math::asin(double v)
+double mini::math::asin(double v)
 {
     return ::asin(v);
 }
 
 //
 
-bool gt::math::intersect_planes(plane_t const& a, plane_t const& b, line_t* intersection_line)
+bool mini::math::intersect_planes(plane_t const& a, plane_t const& b, line_t* intersection_line)
 {
     auto p3_normal = cross(a.normal, b.normal);
     auto det = squared_length(p3_normal);
@@ -1007,7 +1007,7 @@ bool gt::math::intersect_planes(plane_t const& a, plane_t const& b, line_t* inte
     return false;
 }
 
-bool gt::math::intersect_line_x_plane(line_t const& line, plane_t const& plane, vec3f_t* intersection_point)
+bool mini::math::intersect_line_x_plane(line_t const& line, plane_t const& plane, vec3f_t* intersection_point)
 {
     auto plane_p = plane.normal * plane.d;
     if (dot(line.normal, plane.normal) < 0.000001f) { return false; }

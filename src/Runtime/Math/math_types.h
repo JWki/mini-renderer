@@ -1,7 +1,7 @@
 #pragma once
 #include <memory.h>
 
-namespace gt 
+namespace mini 
 {
     namespace math
     {

@@ -32,6 +32,39 @@ assert(condition)
 
 static bool g_exitFlag = false;
 
+namespace mini {
+    /*
+        *   Win32 High Precision Timer
+    */
+    class Timer
+    {
+        uint64_t m_frequency;
+        uint64_t m_timestamp;
+    public:
+        Timer()
+        {
+            LARGE_INTEGER frequency, timestamp;
+            QueryPerformanceFrequency(&frequency);
+            QueryPerformanceCounter(&timestamp);
+
+            m_frequency = frequency.QuadPart;
+            m_timestamp = timestamp.QuadPart;
+        }
+
+        void Reset() {
+            LARGE_INTEGER timestamp;
+            QueryPerformanceCounter(&timestamp);
+            m_timestamp = timestamp.QuadPart;
+        }
+
+        double GetElapsedTime() {
+            LARGE_INTEGER currentTime = {};
+            QueryPerformanceCounter(&currentTime);
+            return static_cast<double>(currentTime.QuadPart - m_timestamp) * 1000.0f / static_cast<double>(m_frequency);
+        }
+    };
+}
+
 /*
 
 */
@@ -55,6 +88,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 */
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 {
+    AllocConsole();
+    AttachConsole(GetCurrentProcessId());
+    FILE* file = nullptr;
+    freopen_s(&file, "CON", "w", stdout);
+
     // Window Setup
     WNDCLASS windowClass = {};
     windowClass.lpfnWndProc = WndProc;
@@ -444,9 +482,14 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         frameFenceEvent = CreateEvent(0, 0, FALSE, 0);
         MINI_ASSERT(frameFenceEvent != NULL, "Failed to create frame fence event");
     }
-
-
+    
+    mini::Timer timer;
     do {
+
+        auto frameTime = timer.GetElapsedTime();
+        timer.Reset();
+        printf("\rFrame Time : %fms", frameTime);
+
         MSG msg = {};
         while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) {
             TranslateMessage(&msg);
@@ -494,11 +537,11 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         cmdList->IASetIndexBuffer(&indexBufferView);
         cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-        const auto proj = gt::math::make_perspective_proj(gt::math::DegToRad(60.0f), viewport.Width / viewport.Height, 0.1f, 100.0f);
-        const auto view = gt::math::inverse(gt::math::make_lookat(gt::math::vec3f_t(0.0f, 1.5f, -2.0f), gt::math::vec3f_t(), gt::math::vec3f_t(0.0f, 1.0f, 0.0f)));
+        const auto proj = mini::math::make_perspective_proj(mini::math::DegToRad(60.0f), viewport.Width / viewport.Height, 0.1f, 100.0f);
+        const auto view = mini::math::inverse(mini::math::make_lookat(mini::math::vec3f_t(0.0f, 1.5f, -2.0f), mini::math::vec3f_t(), mini::math::vec3f_t(0.0f, 1.0f, 0.0f)));
         static float rot = 0.0f;
-        rot += 0.0005f;
-        const auto model = gt::math::make_rotation(gt::math::vec3f_t(0.0f, 1.0f, 0.0f), rot);
+        rot += 0.005f;
+        const auto model = mini::math::make_rotation(mini::math::vec3f_t(0.0f, 1.0f, 0.0f), rot);
         const auto mvp = proj * view * model;
         cmdList->SetGraphicsRoot32BitConstants(0, 16, mvp.elements, 0);
         cmdList->DrawIndexedInstanced(indexBufferSize / sizeof(uint16_t), 1, 0, 0, 0);
@@ -519,7 +562,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         ID3D12CommandList* submits[] = { cmdList };
         graphicsQueue->ExecuteCommandLists(1, submits);
 
-        swapchain->Present(0, 0);
+        swapchain->Present(1, 0);
 
         // @note    we wait for the entire frame to finish executing before we continue with the next frame
         //          this is not a good thing long term 
