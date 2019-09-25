@@ -5,6 +5,15 @@
 #include "Math/math_types.h"
 #include "Math/math_functions.h"
 
+#include <imgui/imgui.h>
+#include <imgui/bindings/imgui_impl_dx12.h>
+#include <imgui/bindings/imgui_impl_win32.h>
+
+#include <EASTL/vector.h>
+#include <EASTL/fixed_vector.h>
+#include <EASTL/fixed_function.h>
+
+#include <Runtime/Renderer/rendergraph.h>
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -24,11 +33,9 @@
 #include "par_shapes-h.h"
 #pragma warning(pop)
 
-#define ARRAY_SIZE(Array) (sizeof(Array)/sizeof((Array)[0]))
 #define BACKBUFFER_COUNT 2
 
-#define MINI_ASSERT(condition, msgFmt, ...) \
-assert(condition)
+#include <Runtime/common.h>
 
 static bool g_exitFlag = false;
 
@@ -60,16 +67,24 @@ namespace mini {
         double GetElapsedTime() {
             LARGE_INTEGER currentTime = {};
             QueryPerformanceCounter(&currentTime);
-            return static_cast<double>(currentTime.QuadPart - m_timestamp) * 1000.0f / static_cast<double>(m_frequency);
+            return static_cast<double>(currentTime.QuadPart - m_timestamp) / static_cast<double>(m_frequency);
         }
     };
 }
 
 /*
+*/
+
+
+/*
 
 */
+IMGUI_IMPL_API LRESULT  ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) {
+        return 0;
+    }
     LRESULT res = 0;
     switch (msg) {
         case WM_QUIT:
@@ -123,13 +138,13 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     IDXGISwapChain3* swapchain = nullptr;
     ID3D12Resource* backbuffers[BACKBUFFER_COUNT] = {};
     ID3D12Resource* depthBuffer = nullptr;
-    D3D12_CPU_DESCRIPTOR_HANDLE RTVs[BACKBUFFER_COUNT] = {};
     D3D12_CPU_DESCRIPTOR_HANDLE DSV = {};
 
     ID3D12GraphicsCommandList* cmdList = nullptr;
     ID3D12CommandAllocator* cmdAllocator = nullptr;
     ID3D12DescriptorHeap* rtvDescriptorHeap = nullptr;
     ID3D12DescriptorHeap* dsvDescriptorHeap = nullptr;
+    ID3D12DescriptorHeap* srvDescriptorHeap = nullptr;
    
     uint32_t backbufferIdx = 0;
 
@@ -210,7 +225,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     {   // RTV resource heap creation
         D3D12_DESCRIPTOR_HEAP_DESC desc = {};
         desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-        desc.NumDescriptors = BACKBUFFER_COUNT;     // @note allocate only the RTVs needed for the swapchain RTVs
+        desc.NumDescriptors = 1024;     
         desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
         desc.NodeMask = 0;
         auto res = d3dDevice->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&rtvDescriptorHeap));
@@ -222,7 +237,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     {   // DSV resource heap creation
         D3D12_DESCRIPTOR_HEAP_DESC desc = {};
         desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-        desc.NumDescriptors = 1; 
+        desc.NumDescriptors = 1024; 
         desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
         desc.NodeMask = 0;
         auto res = d3dDevice->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&dsvDescriptorHeap));
@@ -231,16 +246,26 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
             return -1;
         }
     }
+    {   // SRV resource heap creation
+        D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+        desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        desc.NumDescriptors = 1024;
+        desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        desc.NodeMask = 0;
+        auto res = d3dDevice->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&srvDescriptorHeap));
+        MINI_ASSERT(SUCCEEDED(res), "Failed to create SRV descriptor heap");
+        if (FAILED(res)) {
+            return -1;
+        }
+    }
     {   // create RTVs for swapchain backbuffers
         
-        UINT descriptorSize = d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
         for (auto i = 0u; i < BACKBUFFER_COUNT; ++i) {
-            RTVs[i] = rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-            RTVs[i].ptr += i * descriptorSize;
 
             auto res = swapchain->GetBuffer(i, IID_PPV_ARGS(&backbuffers[i]));
             MINI_ASSERT(SUCCEEDED(res), "Failed to retrieve backbuffer at index #%i", i);
-            d3dDevice->CreateRenderTargetView(backbuffers[i], nullptr, RTVs[i]);
+            backbuffers[i]->SetName(L"Swapchain Buffer");
+            //d3dDevice->CreateRenderTargetView(backbuffers[i], nullptr, RTVs[i]);
         }
     }
     {   // Create main depth buffer as well as a DSV 
@@ -267,9 +292,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         clearValue.DepthStencil.Stencil = 0;
         auto res = d3dDevice->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &clearValue, IID_PPV_ARGS(&depthBuffer));
         MINI_ASSERT(SUCCEEDED(res), "Failed to create depth buffer");
-        
-        DSV = dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-        d3dDevice->CreateDepthStencilView(depthBuffer, nullptr, DSV);
+        depthBuffer->SetName(L"Depth Buffer");
+       /* DSV = dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+        d3dDevice->CreateDepthStencilView(depthBuffer, nullptr, DSV);*/
     }
 
     /*
@@ -471,7 +496,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     indexBufferView.BufferLocation = indexBuffer->GetGPUVirtualAddress();
     indexBufferView.SizeInBytes = indexBufferSize;
     indexBufferView.Format = DXGI_FORMAT_R16_UINT;
-
+    
 
     UINT64 frameFenceValue = 0;
     ID3D12Fence* frameFence = nullptr;
@@ -483,75 +508,120 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         MINI_ASSERT(frameFenceEvent != NULL, "Failed to create frame fence event");
     }
     
+    /*
+    */
+    ImGui::CreateContext();
+
+    ImGui_ImplDX12_Init(d3dDevice, 1, swapchainFormat, srvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), srvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+    ImGui_ImplWin32_Init(hWnd);
+
+    /*
+    */
     mini::Timer timer;
     do {
-
-        auto frameTime = timer.GetElapsedTime();
+        auto const frameTime = timer.GetElapsedTime();
         timer.Reset();
-        printf("\rFrame Time : %fms", frameTime);
 
         MSG msg = {};
         while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
+        //
+        mini::rendergraph::RenderGraph rg;
 
+        ImGui_ImplDX12_NewFrame();
+        ImGui_ImplWin32_NewFrame();
+        ImGui::NewFrame();
+        {
+            //
+            ImGui::SetNextWindowPos(ImVec2(20.0f, 20.0f));
+            auto const windowFlags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar;
+            if (ImGui::Begin("#info", nullptr, windowFlags)) {
+                ImGui::Text("Frame Time : %fms", frameTime * 1000.0);
+            } ImGui::End();
+
+            //
+            //
+            {
+                using namespace mini;
+                auto PrintPasses = [](eastl::vector<rendergraph::Pass> const& passes) {
+                    for (auto const& pass : passes) {
+                        ImGui::Text("%s\n", pass.name);
+                    }
+                };
+
+                auto finalTarget = rg.ImportResource(backbuffers[backbufferIdx], rendergraph::Resource::RenderTarget, D3D12_RESOURCE_STATE_PRESENT);     // import swapchain backbuffer as a non-cullable resource
+
+                rg
+                .AddPass("Scene Pass", [&](rendergraph::RenderGraph * renderGraph, rendergraph::Pass& pass) {
+
+                    pass.clear = true;
+                    pass.clearColor[0] = 0.2f;
+                    pass.clearColor[1] = 0.2f;
+                    pass.clearColor[2] = 0.2f;
+                    pass.clearColor[3] = 1.0f;
+
+                    finalTarget = renderGraph->Write(pass, finalTarget);
+                    return [&](rendergraph::RenderGraph* renderGraph, rendergraph::Pass const& pass) {
+                        
+                        auto backbuffer = backbuffers[backbufferIdx];
+
+                        D3D12_VIEWPORT viewport = {};
+                        viewport.Width = (float)backbuffer->GetDesc().Width;
+                        viewport.Height = (float)backbuffer->GetDesc().Height;
+                        viewport.MinDepth = 0.0f;
+                        viewport.MaxDepth = 1.0f;
+                        D3D12_RECT scissorRect = {};
+                        scissorRect.right = (LONG)backbuffer->GetDesc().Width;
+                        scissorRect.bottom = (LONG)backbuffer->GetDesc().Height;
+
+                        cmdList->SetGraphicsRootSignature(rootSig);
+                        cmdList->RSSetViewports(1, &viewport);
+                        cmdList->RSSetScissorRects(1, &scissorRect);
+
+                        cmdList->IASetVertexBuffers(0, 1, &vertexBufferView);
+                        cmdList->IASetIndexBuffer(&indexBufferView);
+                        cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+                        const auto proj = mini::math::make_perspective_proj(mini::math::DegToRad(60.0f), viewport.Width / viewport.Height, 0.1f, 100.0f);
+                        const auto view = mini::math::inverse(mini::math::make_lookat(mini::math::vec3f_t(0.0f, 1.5f, -2.0f), mini::math::vec3f_t(), mini::math::vec3f_t(0.0f, 1.0f, 0.0f)));
+                        static float rot = 0.0f;
+                        rot += 0.5f * static_cast<float>(frameTime);
+                        const auto model = mini::math::make_rotation(mini::math::vec3f_t(0.0f, 1.0f, 0.0f), rot);
+                        const auto mvp = proj * view * model;
+                        cmdList->SetGraphicsRoot32BitConstants(0, 16, mvp.elements, 0);
+                        cmdList->DrawIndexedInstanced(indexBufferSize / sizeof(uint16_t), 1, 0, 0, 0);
+
+                    };
+                })
+                .AddPass("UI Pass", [&](rendergraph::RenderGraph* renderGraph, rendergraph::Pass& pass) {
+                    finalTarget = renderGraph->Write(pass, finalTarget);
+                    return [&](rendergraph::RenderGraph * renderGraph, rendergraph::Pass const& pass) {
+                        cmdList->SetDescriptorHeaps(1, &srvDescriptorHeap);
+                        ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), cmdList);
+                    };
+                });
+                
+                auto& passes = rg.GetFinalPasses();
+                PrintPasses(passes);
+            }
+        }
+        ImGui::EndFrame();
+        ImGui::Render();
+
+        
         //
         cmdAllocator->Reset();
         cmdList->Reset(cmdAllocator, pso);
 
-        auto backbuffer = backbuffers[backbufferIdx];
-        auto backbufferRTV = RTVs[backbufferIdx];
-
-        D3D12_VIEWPORT viewport = {};
-        viewport.Width = (float)backbuffer->GetDesc().Width;
-        viewport.Height = (float)backbuffer->GetDesc().Height;
-        viewport.MinDepth = 0.0f;
-        viewport.MaxDepth = 1.0f;
-        D3D12_RECT scissorRect = {};
-        scissorRect.right = (LONG)backbuffer->GetDesc().Width;
-        scissorRect.bottom = (LONG)backbuffer->GetDesc().Height;
-
-        cmdList->SetGraphicsRootSignature(rootSig);
-        cmdList->RSSetViewports(1, &viewport);
-        cmdList->RSSetScissorRects(1, &scissorRect);
-
-        {   // transition backbuffer to render target state from present state
-            // @note    check if this is the correct transition for the first frame
-            D3D12_RESOURCE_BARRIER barrier = {};
-            barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-            barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-            barrier.Transition.pResource = backbuffer;
-            barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-            barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-            cmdList->ResourceBarrier(1, &barrier);
-        }
-
-        const float clearColor[] = { 0.1f, 0.1f, 0.1f, 1.0f };
-        
-        cmdList->OMSetRenderTargets(1, &backbufferRTV, FALSE, &DSV);
-        cmdList->ClearRenderTargetView(backbufferRTV, clearColor, 0, nullptr);
-        cmdList->ClearDepthStencilView(DSV, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-
-        cmdList->IASetVertexBuffers(0, 1, &vertexBufferView);
-        cmdList->IASetIndexBuffer(&indexBufferView);
-        cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-        const auto proj = mini::math::make_perspective_proj(mini::math::DegToRad(60.0f), viewport.Width / viewport.Height, 0.1f, 100.0f);
-        const auto view = mini::math::inverse(mini::math::make_lookat(mini::math::vec3f_t(0.0f, 1.5f, -2.0f), mini::math::vec3f_t(), mini::math::vec3f_t(0.0f, 1.0f, 0.0f)));
-        static float rot = 0.0f;
-        rot += 0.005f;
-        const auto model = mini::math::make_rotation(mini::math::vec3f_t(0.0f, 1.0f, 0.0f), rot);
-        const auto mvp = proj * view * model;
-        cmdList->SetGraphicsRoot32BitConstants(0, 16, mvp.elements, 0);
-        cmdList->DrawIndexedInstanced(indexBufferSize / sizeof(uint16_t), 1, 0, 0, 0);
-
+        rg.Execute(d3dDevice, cmdList, rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+        //
         {   // transition backbuffer to present state from render target state
-            // @note    check if this is the correct transition for the first frame
             D3D12_RESOURCE_BARRIER barrier = {};
             barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
             barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-            barrier.Transition.pResource = backbuffer;
+            barrier.Transition.pResource = backbuffers[backbufferIdx];
             barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
             barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
             cmdList->ResourceBarrier(1, &barrier);
@@ -575,6 +645,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         backbufferIdx = swapchain->GetCurrentBackBufferIndex();
 
     } while (!g_exitFlag);
+
+    ImGui_ImplDX12_Shutdown();
+    ImGui_ImplWin32_Shutdown();
 
     return 0;
 }
