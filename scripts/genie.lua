@@ -137,6 +137,12 @@ function add_csjon()
     }
 end -- add_cjson
 
+function add_eastl()
+    files {
+        path.join(THIRD_PARTY_DIR, path.join(path.join("include", "EASTLSource"), "**.cpp")),
+        path.join(THIRD_PARTY_DIR, path.join(path.join("include", "EASTLSource"), "**.h"))
+    }
+end -- add_eastl
 
 -- Main solution
 solution "mini"
@@ -165,6 +171,7 @@ solution "mini"
             --    "core_lib", "Core", "Graphics", "Physics"
             --}
             add_imgui()
+            add_eastl()
             --add_csjon()
             files {
                 path.join(RUNTIME_DIR, "**.c"),
