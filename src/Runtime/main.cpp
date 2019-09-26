@@ -451,9 +451,10 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         vertexBuffer->Unmap(0, 0);
     }
 
-    {   // Vertex Buffer
+    {   // Index buffer
         // @todo    Use a staging buffer for uploading and issue a GPU copy into GPU exclusive memory 
-        //          instead of using an upload heap for the vertex data 
+        //          instead of using an upload heap for the index data
+        // @todo    Share an allocation between vertex and index data
 
         D3D12_HEAP_PROPERTIES heapProperties = {};
         heapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
@@ -518,6 +519,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     /*
     */
     mini::Timer timer;
+    mini::rendergraph::RenderGraph rg;
+
     do {
         auto const frameTime = timer.GetElapsedTime();
         timer.Reset();
@@ -528,7 +531,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
             DispatchMessage(&msg);
         }
         //
-        mini::rendergraph::RenderGraph rg;
+        rg.StartFrame();
 
         ImGui_ImplDX12_NewFrame();
         ImGui_ImplWin32_NewFrame();
@@ -552,6 +555,18 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
                 };
 
                 auto finalTarget = rg.ImportResource(backbuffers[backbufferIdx], rendergraph::Resource::RenderTarget, D3D12_RESOURCE_STATE_PRESENT);     // import swapchain backbuffer as a non-cullable resource
+                auto depth = rg.ImportResource(depthBuffer, rendergraph::Resource::DepthTarget, D3D12_RESOURCE_STATE_DEPTH_WRITE); 
+                
+                D3D12_RESOURCE_DESC desc = {};
+                desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+                desc.DepthOrArraySize = 1;
+                desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+                desc.MipLevels = 1;
+                desc.SampleDesc.Count = 1;
+                desc.Width = backbuffers[0]->GetDesc().Width;
+                desc.Height = backbuffers[0]->GetDesc().Height;
+                desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+                auto tempTarget = rg.DeclareResource(desc, rendergraph::Resource::RenderTarget);
 
                 rg
                 .AddPass("Scene Pass", [&](rendergraph::RenderGraph * renderGraph, rendergraph::Pass& pass) {
@@ -563,6 +578,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
                     pass.clearColor[3] = 1.0f;
 
                     finalTarget = renderGraph->Write(pass, finalTarget);
+                    depth = renderGraph->Write(pass, depth);
+
                     return [&](rendergraph::RenderGraph* renderGraph, rendergraph::Pass const& pass) {
                         
                         auto backbuffer = backbuffers[backbufferIdx];
@@ -597,14 +614,18 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
                 })
                 .AddPass("UI Pass", [&](rendergraph::RenderGraph* renderGraph, rendergraph::Pass& pass) {
                     finalTarget = renderGraph->Write(pass, finalTarget);
+                    pass.clear = false;
+                    pass.clearColor[0] = 0.3f;
+                    pass.clearColor[1] = 0.3f;
+                    pass.clearColor[2] = 0.3f;
+                    pass.clearColor[3] = 1.0f;
                     return [&](rendergraph::RenderGraph * renderGraph, rendergraph::Pass const& pass) {
                         cmdList->SetDescriptorHeaps(1, &srvDescriptorHeap);
                         ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), cmdList);
                     };
                 });
                 
-                auto& passes = rg.GetFinalPasses();
-                PrintPasses(passes);
+                PrintPasses(rg.GetFinalPasses());
             }
         }
         ImGui::EndFrame();

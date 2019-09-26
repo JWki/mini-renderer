@@ -16,7 +16,7 @@ bool mini::rendergraph::Resource::Realize(ID3D12Device* device)
     heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 
     currentState = type == RenderTarget ? D3D12_RESOURCE_STATE_RENDER_TARGET : D3D12_RESOURCE_STATE_DEPTH_WRITE;
-    auto res = device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES, &desc, currentState, nullptr, IID_PPV_ARGS(&d3dResource));
+    auto res = device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &desc, currentState, nullptr, IID_PPV_ARGS(&d3dResource));
     MINI_ASSERT(SUCCEEDED(res), "Failed to realize render graph resource");
     return SUCCEEDED(res);
 }
@@ -71,6 +71,21 @@ eastl::vector<mini::rendergraph::Pass> const& mini::rendergraph::RenderGraph::Ge
 {
     m_passes = SortPasses();
     return m_passes;
+}
+
+void mini::rendergraph::RenderGraph::StartFrame()
+{
+    // @note    clear up resources etc here, we assume that our execution doesn't overlap with a previous execution on the GPU timeline
+    //          as soon as we do actual proper interleaving of frames with multiple frames in flight we need to come up with a better scheme for resource lifetime tracking
+    for (auto& pass : m_passes) {
+        for (auto& write : pass.writes) {
+            write.Cleanup();
+        }
+        for (auto& read : pass.reads) {
+            read.Cleanup();
+        }
+    }
+    m_passes.clear();
 }
 
 void mini::rendergraph::RenderGraph::Execute(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, D3D12_CPU_DESCRIPTOR_HANDLE rtvHeapStart, D3D12_CPU_DESCRIPTOR_HANDLE dsvHeapStart)
@@ -152,5 +167,4 @@ void mini::rendergraph::RenderGraph::Execute(ID3D12Device* device, ID3D12Graphic
         pass.execute(this, pass);
     }
 
-    m_passes.clear();
 }

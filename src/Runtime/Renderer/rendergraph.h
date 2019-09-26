@@ -37,9 +37,11 @@ namespace mini
 
             bool Realize(ID3D12Device* device);
 
-            bool Cleanup()
+            void Cleanup()
             {
-                d3dResource->Release();
+                if (d3dResource != nullptr && !isRootResource) {
+                    d3dResource->Release();
+                }
             }
         };
 
@@ -86,13 +88,14 @@ namespace mini
                 return *this;
             }
 
-            Resource DeclareResource(D3D12_RESOURCE_DESC const& desc, Resource::Type type) { return { m_nextResId++, true, desc, type }; }
+            Resource DeclareResource(D3D12_RESOURCE_DESC const& desc, Resource::Type type) { return { m_nextResId++, false, desc, type }; }
             Resource ImportResource(ID3D12Resource* resource, Resource::Type type, D3D12_RESOURCE_STATES state) { return { m_nextResId++, true, resource->GetDesc(), type, resource, state }; }
             Resource IncrementResourceVersion(Resource res) { auto ret = res; ret.id = m_nextResId++; return ret; }
 
             Resource Read(Pass& pass, Resource const& res) { pass.reads.push_back(res); return IncrementResourceVersion(res); }
             Resource Write(Pass& pass, Resource const& res) { pass.writes.push_back(IncrementResourceVersion(res)); return pass.writes.back(); }
 
+            void StartFrame();
             void Execute(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, D3D12_CPU_DESCRIPTOR_HANDLE rtvHeapStart, D3D12_CPU_DESCRIPTOR_HANDLE dsvHeapStart);
             eastl::vector<Pass> const& GetFinalPasses();
             
