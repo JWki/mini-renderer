@@ -178,4 +178,13 @@ solution "mini"
                 path.join(RUNTIME_DIR, "**.cpp"),
                 path.join(RUNTIME_DIR, "**.h"),
             }
+    -- ---------------------
+    group "Shaders"
+        -- ---------------------
+        -- Main executable
+        project "HLSL"
+            kind "StaticLib"    -- whatever
+            files {
+                path.join(SOURCE_DIR, path.join("HLSL", "**.hlsl"))
+            }
      

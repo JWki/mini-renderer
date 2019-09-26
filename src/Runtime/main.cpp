@@ -335,9 +335,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         MINI_ASSERT(SUCCEEDED(res), "Failed to create root signature");
     }
     {   // load and compile shaders from file
-        auto res = D3DCompileFromFile(L"src/Runtime/Shader.hlsl", 0, 0, "VSMain", "vs_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &vsCodeBlob, 0);
+        auto res = D3DCompileFromFile(L"src/HLSL/Shader.hlsl", 0, 0, "VSMain", "vs_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &vsCodeBlob, 0);
         MINI_ASSERT(SUCCEEDED(res), "Failed to compile vertex shader");
-        res = D3DCompileFromFile(L"src/Runtime/Shader.hlsl", 0, 0, "PSMain", "ps_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &psCodeBlob, 0);
+        res = D3DCompileFromFile(L"src/HLSL/Shader.hlsl", 0, 0, "PSMain", "ps_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &psCodeBlob, 0);
         MINI_ASSERT(SUCCEEDED(res), "Failed to compile pixel shader");
     }   
     {   // setup PSO
