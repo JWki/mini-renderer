@@ -319,9 +319,24 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
             param.Constants.RegisterSpace = 0;
             param.Constants.ShaderRegister = 0;
         }
+        {   // Vertex / index buffers for vertex pull;
+
+            D3D12_DESCRIPTOR_RANGE ranges[2] = {};
+            ranges[0].NumDescriptors = 2;
+            ranges[0].RegisterSpace = 0;
+            ranges[0].BaseShaderRegister = 0;
+            ranges[0].OffsetInDescriptorsFromTableStart = 0;
+            ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+
+            auto& param = params[1];
+            param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+            param.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+            param.DescriptorTable.NumDescriptorRanges = 1;
+            param.DescriptorTable.pDescriptorRanges = ranges;
+        }
 
         D3D12_ROOT_SIGNATURE_DESC desc = {};
-        desc.NumParameters = 1;
+        desc.NumParameters = 2;
         desc.pParameters = params;
         desc.NumStaticSamplers = 0;
         desc.pStaticSamplers = nullptr;
@@ -335,17 +350,12 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         MINI_ASSERT(SUCCEEDED(res), "Failed to create root signature");
     }
     {   // load and compile shaders from file
-        auto res = D3DCompileFromFile(L"src/HLSL/Shader.hlsl", 0, 0, "VSMain", "vs_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &vsCodeBlob, 0);
+        auto res = D3DCompileFromFile(L"src/HLSL/Shader.hlsl", 0, 0, "VSMain", "vs_5_1", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &vsCodeBlob, 0);
         MINI_ASSERT(SUCCEEDED(res), "Failed to compile vertex shader");
-        res = D3DCompileFromFile(L"src/HLSL/Shader.hlsl", 0, 0, "PSMain", "ps_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &psCodeBlob, 0);
+        res = D3DCompileFromFile(L"src/HLSL/Shader.hlsl", 0, 0, "PSMain", "ps_5_1", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &psCodeBlob, 0);
         MINI_ASSERT(SUCCEEDED(res), "Failed to compile pixel shader");
     }   
     {   // setup PSO
-
-        D3D12_INPUT_ELEMENT_DESC inputElements[] = {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-        };
 
         D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
         desc.pRootSignature = rootSig;
@@ -366,8 +376,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         desc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
         desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
         desc.DepthStencilState.StencilEnable = FALSE;
-        desc.InputLayout.pInputElementDescs = inputElements;
-        desc.InputLayout.NumElements = ARRAY_SIZE(inputElements);
+        desc.InputLayout.NumElements = 0; 
         desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
         desc.NumRenderTargets = 1;
         desc.RTVFormats[0] = swapchainFormat;
@@ -488,16 +497,42 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     // @note we can free our mesh data here since we don't have a reason to keep it around any longer
     free(meshData);
 
-    D3D12_VERTEX_BUFFER_VIEW vertexBufferView = {};
-    vertexBufferView.BufferLocation = vertexBuffer->GetGPUVirtualAddress();
-    vertexBufferView.SizeInBytes = vertexBufferSize;
-    vertexBufferView.StrideInBytes = vertexBufferStride;
+    // @note create SRVs for vertex and index buffers
+    auto srvStartCPU = srvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+    auto srvStartGPU = srvDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+    auto const incrSize = d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-    D3D12_INDEX_BUFFER_VIEW indexBufferView = {};
-    indexBufferView.BufferLocation = indexBuffer->GetGPUVirtualAddress();
-    indexBufferView.SizeInBytes = indexBufferSize;
-    indexBufferView.Format = DXGI_FORMAT_R16_UINT;
-    
+    D3D12_CPU_DESCRIPTOR_HANDLE vertexBufferSRVCPU = srvStartCPU;
+    D3D12_GPU_DESCRIPTOR_HANDLE vertexBufferSRV = srvStartGPU;
+    vertexBufferSRVCPU.ptr += incrSize;
+    vertexBufferSRV.ptr += incrSize;
+    {
+        D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+        desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+        desc.Format = DXGI_FORMAT_UNKNOWN;
+        desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+        desc.Buffer.FirstElement = 0;
+        desc.Buffer.NumElements = vertexBufferSize / vertexBufferStride;
+        desc.Buffer.StructureByteStride = vertexBufferStride;
+        d3dDevice->CreateShaderResourceView(vertexBuffer, &desc, vertexBufferSRVCPU);
+    }
+    D3D12_CPU_DESCRIPTOR_HANDLE indexBufferSRVCPU = vertexBufferSRVCPU;
+    D3D12_GPU_DESCRIPTOR_HANDLE indexBufferSRV = vertexBufferSRV;
+    indexBufferSRVCPU.ptr += incrSize;
+    indexBufferSRV.ptr += incrSize;
+    {
+        D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+        desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+        desc.Format = DXGI_FORMAT_R16_UINT;
+        desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+        desc.Buffer.FirstElement = 0;
+        desc.Buffer.NumElements = indexBufferSize / sizeof(uint16_t);
+        desc.Buffer.StructureByteStride = 0;
+        d3dDevice->CreateShaderResourceView(indexBuffer, &desc, indexBufferSRVCPU);
+    }
+  
 
     UINT64 frameFenceValue = 0;
     ID3D12Fence* frameFence = nullptr;
@@ -593,12 +628,12 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
                         scissorRect.right = (LONG)backbuffer->GetDesc().Width;
                         scissorRect.bottom = (LONG)backbuffer->GetDesc().Height;
 
+                        cmdList->SetDescriptorHeaps(1, &srvDescriptorHeap);
+
                         cmdList->SetGraphicsRootSignature(rootSig);
                         cmdList->RSSetViewports(1, &viewport);
                         cmdList->RSSetScissorRects(1, &scissorRect);
 
-                        cmdList->IASetVertexBuffers(0, 1, &vertexBufferView);
-                        cmdList->IASetIndexBuffer(&indexBufferView);
                         cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
                         const auto proj = mini::math::make_perspective_proj(mini::math::DegToRad(60.0f), viewport.Width / viewport.Height, 0.1f, 100.0f);
@@ -608,7 +643,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
                         const auto model = mini::math::make_rotation(mini::math::vec3f_t(0.0f, 1.0f, 0.0f), rot);
                         const auto mvp = proj * view * model;
                         cmdList->SetGraphicsRoot32BitConstants(0, 16, mvp.elements, 0);
-                        cmdList->DrawIndexedInstanced(indexBufferSize / sizeof(uint16_t), 1, 0, 0, 0);
+                        cmdList->SetGraphicsRootDescriptorTable(1, vertexBufferSRV);
+                        //cmdList->DrawInstanced(3, 1, 0, 0);
+                        cmdList->DrawInstanced(indexBufferSize / sizeof(uint16_t), 1, 0, 0);
 
                     };
                 })

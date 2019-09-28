@@ -1,9 +1,3 @@
-struct VS_In
-{
-    float3 position : POSITION;
-    float3 normal   : NORMAL;
-};
-
 struct VS_Out
 {
     float4 position : SV_POSITION;
@@ -15,14 +9,22 @@ cbuffer Constants : register(b0)
     float4x4 mvp;
 };
 
-
-VS_Out VSMain(VS_In input)
+struct Vertex
 {
+    float3 position;
+    float3 normal;
+};
+
+StructuredBuffer<Vertex> vertices : register(t0);
+Buffer<uint> indices : register(t1); 
+
+VS_Out VSMain(uint id: SV_VertexID)
+{
+    Vertex vertex = vertices[indices[id]];
+
     VS_Out output;
-
-    output.color = input.normal * 0.5f + 0.5f;
-    output.position = mul(mvp, float4(input.position, 1.0f));
-
+    output.color = vertex.normal * 0.5f + 0.5f;
+    output.position = mul(mvp, float4(vertex.position, 1.0f));
     return output;
 }
 
