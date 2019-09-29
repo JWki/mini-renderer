@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <assert.h>
 
+
 #include "Math/math_types.h"
 #include "Math/math_functions.h"
 
@@ -12,6 +13,7 @@
 #include <EASTL/vector.h>
 #include <EASTL/fixed_vector.h>
 #include <EASTL/fixed_function.h>
+
 
 #include <Runtime/Renderer/rendergraph.h>
 
@@ -32,6 +34,8 @@
 #pragma warning(push, 0)
 #include "par_shapes-h.h"
 #pragma warning(pop)
+
+#include <fstream>
 
 #define BACKBUFFER_COUNT 2
 
@@ -302,8 +306,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     */
 
     ID3D12RootSignature* rootSig = nullptr;
-    ID3DBlob* vsCodeBlob = nullptr;
-    ID3DBlob* psCodeBlob = nullptr;
+    D3D12_SHADER_BYTECODE vertexShader;
+    D3D12_SHADER_BYTECODE pixelShader;
     ID3D12PipelineState* pso = nullptr;
 
     {   // setup root signature 
@@ -349,18 +353,37 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         res = d3dDevice->CreateRootSignature(0, serializedSignature->GetBufferPointer(), serializedSignature->GetBufferSize(), IID_PPV_ARGS(&rootSig));
         MINI_ASSERT(SUCCEEDED(res), "Failed to create root signature");
     }
-    {   // load and compile shaders from file
-        auto res = D3DCompileFromFile(L"src/HLSL/Shader.hlsl", 0, 0, "VSMain", "vs_5_1", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &vsCodeBlob, 0);
-        MINI_ASSERT(SUCCEEDED(res), "Failed to compile vertex shader");
-        res = D3DCompileFromFile(L"src/HLSL/Shader.hlsl", 0, 0, "PSMain", "ps_5_1", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &psCodeBlob, 0);
-        MINI_ASSERT(SUCCEEDED(res), "Failed to compile pixel shader");
+    {   // load shaders from file
+        std::ifstream fin("resource/shaders/base/Shader.shader", std::ios_base::binary);
+        MINI_ASSERT(fin.is_open(), "Failed to open %s", "resources/shaders/base/Shader.shader");
+        uint32_t pathLen = 0;
+        fin >> pathLen;
+        char* path = new char[pathLen + 1];
+        memset(path, 0x0, pathLen + 1);
+        fin.read(path, pathLen);
+        {   // vertex shader
+            uint32_t len = 0;
+            fin >> len;
+            vertexShader.BytecodeLength = static_cast<SIZE_T>(len);
+            char* buf = new char[len];
+            fin.read(buf, len);
+            vertexShader.pShaderBytecode = buf;
+        }
+        {   // pixel shader
+            uint32_t len = 0;
+            fin >> len;
+            pixelShader.BytecodeLength = static_cast<SIZE_T>(len);
+            char* buf = new char[len];
+            fin.read(buf, len);
+            pixelShader.pShaderBytecode = buf;
+        }
     }   
     {   // setup PSO
 
         D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
         desc.pRootSignature = rootSig;
-        desc.VS = { vsCodeBlob->GetBufferPointer(), vsCodeBlob->GetBufferSize() };
-        desc.PS = { psCodeBlob->GetBufferPointer(), psCodeBlob->GetBufferSize() };
+        desc.VS = vertexShader;
+        desc.PS = pixelShader;
         desc.BlendState.AlphaToCoverageEnable = FALSE;
         desc.BlendState.IndependentBlendEnable = FALSE;
         for (auto i = 0; i < ARRAY_SIZE(desc.BlendState.RenderTarget); ++i) {

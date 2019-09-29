@@ -1,3 +1,7 @@
+@vs_main { VSMain }
+@ps_main { PSMain }
+#line 3
+
 struct VS_Out
 {
     float4 position : SV_POSITION;
@@ -21,7 +25,7 @@ Buffer<uint> indices : register(t1);
 VS_Out VSMain(uint id: SV_VertexID)
 {
     Vertex vertex = vertices[indices[id]];
-
+    
     VS_Out output;
     output.color = vertex.normal * 0.5f + 0.5f;
     output.position = mul(mvp, float4(vertex.position, 1.0f));

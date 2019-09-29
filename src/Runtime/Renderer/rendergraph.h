@@ -60,7 +60,7 @@ namespace mini
             eastl::vector<Resource> reads;
             eastl::vector<Resource> writes;
             bool clear = false;
-            float clearColor[4];
+            float clearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
             Pass() = default;
             Pass(char const* n) : name(n) {}
 

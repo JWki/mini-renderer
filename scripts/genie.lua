@@ -8,7 +8,7 @@ THIRD_PARTY_DIR     = path.join(ROOT_DIR, "third_party")
 
 -- @note these are the new kids
 RUNTIME_DIR         = path.join(SOURCE_DIR, "Runtime")
-
+SHADER_COMPILER_DIR = path.join(SOURCE_DIR, "ShaderCompiler")
 
 -- Defaults for all projects
 function project_defaults()
@@ -178,6 +178,23 @@ solution "mini"
                 path.join(RUNTIME_DIR, "**.cpp"),
                 path.join(RUNTIME_DIR, "**.h"),
             }
+    -- ---------------------
+    group "Tools"
+    -- ---------------------
+    --  Shader Compiler
+    project "ShaderCompiler"
+        kind "ConsoleApp"
+        project_defaults()
+        --links {
+        --    "core_lib", "Core", "Graphics", "Physics"
+        --}
+        --add_eastl()
+        --add_csjon()
+        files {
+            path.join(SHADER_COMPILER_DIR, "**.c"),
+            path.join(SHADER_COMPILER_DIR, "**.cpp"),
+            path.join(SHADER_COMPILER_DIR, "**.h"),
+        }
     -- ---------------------
     group "Shaders"
         -- ---------------------
