@@ -8,10 +8,11 @@ struct VS_Out
     float3 color    : COLOR;
 };
 
-cbuffer Constants : register(b0)
+struct MVP
 {
     float4x4 mvp;
 };
+ConstantBuffer<MVP> constants : register(b0);
 
 struct Vertex
 {
@@ -28,7 +29,7 @@ VS_Out VSMain(uint id: SV_VertexID)
     
     VS_Out output;
     output.color = vertex.normal * 0.5f + 0.5f;
-    output.position = mul(mvp, float4(vertex.position, 1.0f));
+    output.position = mul(constants.mvp, float4(vertex.position, 1.0f));
     return output;
 }
 
