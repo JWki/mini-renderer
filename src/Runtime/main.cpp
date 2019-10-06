@@ -16,6 +16,8 @@
 
 
 #include <Runtime/Renderer/rendergraph.h>
+#include <Runtime/AssetLibraries/MeshLibrary.h>
+#include <Runtime/Renderables/StaticMeshRenderer.h>
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -102,6 +104,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     return res;
 } 
 
+
 /*
 
 */
@@ -152,18 +155,27 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
    
     uint32_t backbufferIdx = 0;
 
-    {   // Device Creation
-        // @todo Adapter selection
-        auto minimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;  // D3D11_FEATURE_LEVEL_12_0;
-        auto res = D3D12CreateDevice(0, minimumFeatureLevel, IID_PPV_ARGS(&d3dDevice));
-        MINI_ASSERT(SUCCEEDED(res), "Failed to create D3D12 device");
+    {   // DXGI Factory creation
+        auto res = CreateDXGIFactory2(0, IID_PPV_ARGS(&dxgiFactory));
+        MINI_ASSERT(SUCCEEDED(res), "Failed to create DXGI factory");
         if (FAILED(res)) {
             return -1;
         }
     }
-    {   // DXGI Factory creation
-        auto res = CreateDXGIFactory2(0, IID_PPV_ARGS(&dxgiFactory));
-        MINI_ASSERT(SUCCEEDED(res), "Failed to create DXGI factory");
+    {   // Device Creation
+        // @todo Adapter selection
+
+        IDXGIAdapter* adapter = nullptr;
+        for (uint32_t i = 0u; dxgiFactory->EnumAdapters(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i)
+        {
+            DXGI_ADAPTER_DESC desc = {};
+            auto res = adapter->GetDesc(&desc);
+            MINI_ASSERT(SUCCEEDED(res), "Failed to get description for GPU adapter %lu", i);
+        }
+
+        auto minimumFeatureLevel = D3D_FEATURE_LEVEL_12_0;  // D3D11_FEATURE_LEVEL_12_0;
+        auto res = D3D12CreateDevice(0, minimumFeatureLevel, IID_PPV_ARGS(&d3dDevice));
+        MINI_ASSERT(SUCCEEDED(res), "Failed to create D3D12 device");
         if (FAILED(res)) {
             return -1;
         }
@@ -319,7 +331,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
             auto& param = params[0];
             param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
             param.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-            param.Constants.Num32BitValues = 16;    
+            param.Constants.Num32BitValues = 32;    
             param.Constants.RegisterSpace = 0;
             param.Constants.ShaderRegister = 0;
         }
@@ -414,13 +426,11 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     /*
         ***
     */
+    mini::MeshLibrary meshLibrary;
+    meshLibrary.Initialize(d3dDevice, 1024);
 
-    char* meshData = nullptr;   // @note we share an allocation for vertices and indices
-    char* vertices = nullptr;   
-    char* indices = nullptr;
-    uint32_t vertexBufferSize = 0;
-    uint32_t vertexBufferStride = 0;
-    uint32_t indexBufferSize = 0;
+    char* meshDataBuf = nullptr;   // @note we share an allocation for vertices and indices
+    mini::MeshData meshData;
     static_assert(sizeof(uint16_t) == sizeof(PAR_SHAPES_T));
 
     {   // create a procedural cube mesh, copy out positions and normals 
@@ -429,133 +439,25 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         par_shapes_unweld(cubeMesh, true);
         par_shapes_compute_normals(cubeMesh);
         
-        vertexBufferSize = sizeof(float) * 3 * (cubeMesh->npoints * 2);
-        vertexBufferStride = sizeof(float) * 6;
+        meshData.vertexDataSize = sizeof(float) * 3 * (cubeMesh->npoints * 2);
+        meshData.vertexStride = sizeof(float) * 6;
         
-        indexBufferSize = sizeof(uint16_t) * 3 * cubeMesh->ntriangles;
+        meshData.indexDataSize = sizeof(uint16_t) * 3 * cubeMesh->ntriangles;
 
-        vertices = meshData = reinterpret_cast<char*>(malloc(vertexBufferSize + indexBufferSize));
+        meshData.vertexData = meshDataBuf = reinterpret_cast<char*>(malloc(meshData.vertexDataSize + meshData.indexDataSize));
         for (auto i = 0; i < cubeMesh->npoints; ++i) {
 
-            auto writePtr = vertices + vertexBufferStride * i;
+            auto writePtr = meshData.vertexData + meshData.vertexStride * i;
             memcpy(writePtr, cubeMesh->points + i * 3, sizeof(float) * 3);
             writePtr += sizeof(float) * 3;
             memcpy(writePtr, cubeMesh->normals + i * 3, sizeof(float) * 3);
         }
-        indices = meshData + vertexBufferSize;
-        memcpy(indices, cubeMesh->triangles, indexBufferSize);
+        meshData.indexData = meshDataBuf + meshData.vertexDataSize;
+        memcpy(meshData.indexData, cubeMesh->triangles, meshData.indexDataSize);
     }
 
-
-    ID3D12Resource* vertexBuffer = nullptr;
-    ID3D12Resource* indexBuffer = nullptr;
-
-    {   // Vertex Buffer
-        // @todo    Use a staging buffer for uploading and issue a GPU copy into GPU exclusive memory 
-        //          instead of using an upload heap for the vertex data 
-        
-        D3D12_HEAP_PROPERTIES heapProperties = {};
-        heapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
-        heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-        heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-        
-        D3D12_RESOURCE_DESC desc = {};
-        desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-        desc.Alignment = 0;
-        desc.Width = vertexBufferSize;
-        desc.Height = 1;
-        desc.DepthOrArraySize = 1;
-        desc.MipLevels = 1;
-        desc.Format = DXGI_FORMAT_UNKNOWN;
-        desc.SampleDesc.Count = 1;
-        desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-        desc.Flags = D3D12_RESOURCE_FLAG_NONE;
-        // @note we allow the runtime to manage our memory allocation here
-        auto res = d3dDevice->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, 0, IID_PPV_ARGS(&vertexBuffer));
-        MINI_ASSERT(SUCCEEDED(res), "Failed to create commited resource for vertex buffer");
-        
-     
-        D3D12_RANGE readRange = {};
-        void* map = nullptr;
-        res = vertexBuffer->Map(0, &readRange, &map);
-        MINI_ASSERT(SUCCEEDED(res), "Failed to map vertex buffer");
-        memcpy(map, vertices, vertexBufferSize);
-        vertexBuffer->Unmap(0, 0);
-    }
-
-    {   // Index buffer
-        // @todo    Use a staging buffer for uploading and issue a GPU copy into GPU exclusive memory 
-        //          instead of using an upload heap for the index data
-        // @todo    Share an allocation between vertex and index data
-
-        D3D12_HEAP_PROPERTIES heapProperties = {};
-        heapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
-        heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-        heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-
-        D3D12_RESOURCE_DESC desc = {};
-        desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-        desc.Alignment = 0;
-        desc.Width = indexBufferSize;
-        desc.Height = 1;
-        desc.DepthOrArraySize = 1;
-        desc.MipLevels = 1;
-        desc.Format = DXGI_FORMAT_UNKNOWN;
-        desc.SampleDesc.Count = 1;
-        desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-        desc.Flags = D3D12_RESOURCE_FLAG_NONE;
-        // @note we allow the runtime to manage our memory allocation here
-        auto res = d3dDevice->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, 0, IID_PPV_ARGS(&indexBuffer));
-        MINI_ASSERT(SUCCEEDED(res), "Failed to create commited resource for index buffer");
-
-
-        D3D12_RANGE readRange = {};
-        void* map = nullptr;
-        res = indexBuffer->Map(0, &readRange, &map);
-        MINI_ASSERT(SUCCEEDED(res), "Failed to map index buffer");
-        memcpy(map, indices, indexBufferSize);
-        indexBuffer->Unmap(0, 0);
-    }
-
-    // @note we can free our mesh data here since we don't have a reason to keep it around any longer
-    free(meshData);
-
-    // @note create SRVs for vertex and index buffers
-    auto srvStartCPU = srvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-    auto srvStartGPU = srvDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
-    auto const incrSize = d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-    D3D12_CPU_DESCRIPTOR_HANDLE vertexBufferSRVCPU = srvStartCPU;
-    D3D12_GPU_DESCRIPTOR_HANDLE vertexBufferSRV = srvStartGPU;
-    vertexBufferSRVCPU.ptr += incrSize;
-    vertexBufferSRV.ptr += incrSize;
-    {
-        D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-        desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-        desc.Format = DXGI_FORMAT_UNKNOWN;
-        desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-        desc.Buffer.FirstElement = 0;
-        desc.Buffer.NumElements = vertexBufferSize / vertexBufferStride;
-        desc.Buffer.StructureByteStride = vertexBufferStride;
-        d3dDevice->CreateShaderResourceView(vertexBuffer, &desc, vertexBufferSRVCPU);
-    }
-    D3D12_CPU_DESCRIPTOR_HANDLE indexBufferSRVCPU = vertexBufferSRVCPU;
-    D3D12_GPU_DESCRIPTOR_HANDLE indexBufferSRV = vertexBufferSRV;
-    indexBufferSRVCPU.ptr += incrSize;
-    indexBufferSRV.ptr += incrSize;
-    {
-        D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-        desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-        desc.Format = DXGI_FORMAT_R16_UINT;
-        desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-        desc.Buffer.FirstElement = 0;
-        desc.Buffer.NumElements = indexBufferSize / sizeof(uint16_t);
-        desc.Buffer.StructureByteStride = 0;
-        d3dDevice->CreateShaderResourceView(indexBuffer, &desc, indexBufferSRVCPU);
-    }
-  
+    auto cubeMesh = meshLibrary.AllocateWithData(meshData);
+    free(meshDataBuf);  // @note we can free our mesh data here since we don't have a reason to keep it around any longer
 
     UINT64 frameFenceValue = 0;
     ID3D12Fence* frameFence = nullptr;
@@ -579,6 +481,18 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     mini::Timer timer;
     mini::rendergraph::RenderGraph rg;
 
+    eastl::vector<mini::StaticMesh> meshes;
+    for(auto i = -3; i < 6; ++i)
+    {
+        auto& mesh = meshes.emplace_back();
+        mesh.resourceHandle = cubeMesh;
+        mesh.transform.position = mini::math::vec3f_t(i * 1.5f, 0.0f, 0.0f);
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE frameSRVOffsetCPU;
+    D3D12_GPU_DESCRIPTOR_HANDLE frameSRVOffsetGPU;
+    const auto srvIncrement = d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
     do {
         auto const frameTime = timer.GetElapsedTime();
         timer.Reset();
@@ -589,6 +503,12 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
             DispatchMessage(&msg);
         }
         //
+        frameSRVOffsetCPU = srvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+        frameSRVOffsetGPU = srvDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+
+        frameSRVOffsetCPU.ptr += srvIncrement;  // @note skip the first slot because we reserved that for imgui
+        frameSRVOffsetGPU.ptr += srvIncrement;
+
         rg.StartFrame();
 
         ImGui_ImplDX12_NewFrame();
@@ -660,16 +580,34 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
                         cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
                         const auto proj = mini::math::make_perspective_proj(mini::math::DegToRad(60.0f), viewport.Width / viewport.Height, 0.1f, 100.0f);
-                        const auto view = mini::math::inverse(mini::math::make_lookat(mini::math::vec3f_t(0.0f, 1.5f, -2.0f), mini::math::vec3f_t(), mini::math::vec3f_t(0.0f, 1.0f, 0.0f)));
+                        const auto view = mini::math::inverse(mini::math::make_lookat(mini::math::vec3f_t(0.0f, 1.5f, -8.0f), mini::math::vec3f_t(), mini::math::vec3f_t(0.0f, 1.0f, 0.0f)));
+
+
                         static float rot = 0.0f;
                         rot += 0.5f * static_cast<float>(frameTime);
-                        const auto model = mini::math::make_rotation(mini::math::vec3f_t(0.0f, 1.0f, 0.0f), rot);
-                        const auto mvp = proj * view * model;
-                        cmdList->SetGraphicsRoot32BitConstants(0, 16, mvp.elements, 0);
-                        cmdList->SetGraphicsRootDescriptorTable(1, vertexBufferSRV);
-                        //cmdList->DrawInstanced(3, 1, 0, 0);
-                        cmdList->DrawInstanced(indexBufferSize / sizeof(uint16_t), 1, 0, 0);
+                        for (auto const& mesh : meshes) {
 
+                            auto meshResource = meshLibrary.Lookup(mesh.resourceHandle);
+                            // @note allocate two SRVs from the frame ringbuffer heap, copy resource descriptors over then bind them for rendering
+
+                            d3dDevice->CopyDescriptorsSimple(2, frameSRVOffsetCPU, { meshResource->vertexBufferView }, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+                            cmdList->SetGraphicsRootDescriptorTable(1, frameSRVOffsetGPU);
+                            frameSRVOffsetCPU.ptr += srvIncrement * 2;
+                            frameSRVOffsetGPU.ptr += srvIncrement * 2;
+
+                            const auto model = mini::math::make_translation(mesh.transform.position) * mini::math::quat_to_mat(mesh.transform.rotation);
+                            const auto mvp = proj * view * model;
+
+                            struct Constants
+                            {
+                                math::mat4x4f_t model;
+                                math::mat4x4f_t mvp;
+                            } constants { model, mvp };
+
+                            cmdList->SetGraphicsRoot32BitConstants(0, 32, &constants, 0);
+
+                            cmdList->DrawInstanced(meshResource->numIndices, 1, 0, 0);
+                        }
                     };
                 })
                 .AddPass("UI Pass", [&](rendergraph::RenderGraph* renderGraph, rendergraph::Pass& pass) {
@@ -691,7 +629,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         ImGui::EndFrame();
         ImGui::Render();
 
-        
         //
         cmdAllocator->Reset();
         cmdList->Reset(cmdAllocator, pso);

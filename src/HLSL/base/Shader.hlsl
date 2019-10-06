@@ -5,14 +5,16 @@
 struct VS_Out
 {
     float4 position : SV_POSITION;
-    float3 color    : COLOR;
+    float3 normal   : NORMAL;
 };
 
-struct MVP
+struct Matrices
 {
+    float4x4 object;
     float4x4 mvp;
 };
-ConstantBuffer<MVP> constants : register(b0);
+
+ConstantBuffer<Matrices> constants : register(b0, space0);
 
 struct Vertex
 {
@@ -20,20 +22,24 @@ struct Vertex
     float3 normal;
 };
 
-StructuredBuffer<Vertex> vertices : register(t0);
-Buffer<uint> indices : register(t1); 
+StructuredBuffer<Vertex> vertices : register(t0, space0);
+Buffer<uint> indices : register(t1, space0); 
 
 VS_Out VSMain(uint id: SV_VertexID)
 {
     Vertex vertex = vertices[indices[id]];
     
     VS_Out output;
-    output.color = vertex.normal * 0.5f + 0.5f;
+    output.normal = mul(constants.object, vertex.normal);
     output.position = mul(constants.mvp, float4(vertex.position, 1.0f));
     return output;
 }
 
 float4 PSMain(VS_Out input) : SV_TARGET
 {
-    return float4(input.color, 1.0);
+    const float3 L = normalize(-float3(-1, -1, 1));
+
+    float lambert = dot(L, input.normal);
+
+    return float4(lambert, lambert, lambert, 1.0);
 }
