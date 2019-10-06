@@ -32,12 +32,9 @@
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "dxgi.lib")
 
-#define PAR_SHAPES_IMPLEMENTATION
 #pragma warning(push, 0)
 #include "par_shapes-h.h"
 #pragma warning(pop)
-
-#include <fstream>
 
 #define BACKBUFFER_COUNT 2
 
@@ -76,6 +73,72 @@ namespace mini {
             return static_cast<double>(currentTime.QuadPart - m_timestamp) / static_cast<double>(m_frequency);
         }
     };
+
+    class ByteStream
+    {
+        char*       m_buffer = nullptr;
+        uint32_t    m_offset = 0;
+        uint32_t    m_bufferSize = 0;
+    public:
+        ByteStream() = default;
+        ByteStream(void* buffer, uint32_t bufferSize)
+            :   m_buffer(reinterpret_cast<char*>(buffer)), m_offset(0), m_bufferSize(bufferSize) {}
+
+        template <class T>
+        void Read(T* target)
+        {
+            ReadBytes(target, sizeof(T));
+        }
+
+        void ReadBytes(void* target, uint32_t numBytes)
+        {
+            numBytes = numBytes <= m_bufferSize - m_offset ? numBytes : m_bufferSize - m_offset;
+            if(target != nullptr && numBytes > 0)
+            {
+                memcpy(target, m_buffer + m_offset, numBytes);
+            }
+            m_offset += numBytes;
+        }
+
+        template <class T>
+        void Write(T const& source)
+        {
+            WriteBytes(&source, sizeof(T));
+        }
+
+        void WriteBytes(void const* source, uint32_t numBytes)
+        {
+            numBytes = numBytes <= m_bufferSize - m_offset ? numBytes : m_bufferSize - m_offset;
+            memcpy(m_buffer + m_offset, source, numBytes);
+            m_offset += numBytes;
+        }
+    };
+}
+
+namespace
+{
+    void* Win32LoadFileContents(char const* path, uint64_t* outFileSize = nullptr)
+    {
+        HANDLE handle = CreateFileA(path, GENERIC_READ, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (handle == INVALID_HANDLE_VALUE) {
+            return nullptr;
+        }
+        DWORD size = GetFileSize(handle, NULL);
+        void* buffer = malloc(size + 1);    // @note allocate 1 extra byte...
+        memset(buffer, 0x0, size + 1);  // ...for text files to null terminate them if they aren't
+        DWORD bytesRead = 0;
+        auto res = ReadFile(handle, buffer, size, &bytesRead, NULL);
+        if (outFileSize != nullptr) {
+            *outFileSize = (uint64_t)size;
+        }
+        if (res == FALSE || bytesRead != size) {
+            free(buffer);
+            CloseHandle(handle);
+            return nullptr;
+        }
+        CloseHandle(handle);
+        return buffer;
+    }
 }
 
 /*
@@ -108,6 +171,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 /*
 
 */
+#include <stdio.h>
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 {
     AllocConsole();
@@ -366,27 +430,29 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         MINI_ASSERT(SUCCEEDED(res), "Failed to create root signature");
     }
     {   // load shaders from file
-        std::ifstream fin("resource/shaders/base/Shader.shader", std::ios_base::binary);
-        MINI_ASSERT(fin.is_open(), "Failed to open %s", "resources/shaders/base/Shader.shader");
+        uint64_t fileSize = 0;
+        auto fileContents = reinterpret_cast<char*>(Win32LoadFileContents("resource/shaders/base/Shader.shader", &fileSize));
+        MINI_ASSERT(fileContents != nullptr, "Failed to open %s", "resources/shaders/base/Shader.shader");
+        mini::ByteStream byteStream{ fileContents, static_cast<uint32_t>(fileSize) };
         uint32_t pathLen = 0;
-        fin >> pathLen;
+        byteStream.Read(&pathLen);
         char* path = new char[pathLen + 1];
         memset(path, 0x0, pathLen + 1);
-        fin.read(path, pathLen);
+        byteStream.ReadBytes(path, pathLen);
         {   // vertex shader
             uint32_t len = 0;
-            fin >> len;
+            byteStream.Read(&len);
             vertexShader.BytecodeLength = static_cast<SIZE_T>(len);
             char* buf = new char[len];
-            fin.read(buf, len);
+            byteStream.ReadBytes(buf, len);
             vertexShader.pShaderBytecode = buf;
         }
         {   // pixel shader
             uint32_t len = 0;
-            fin >> len;
+            byteStream.Read(&len);
             pixelShader.BytecodeLength = static_cast<SIZE_T>(len);
             char* buf = new char[len];
-            fin.read(buf, len);
+            byteStream.ReadBytes(buf, len);
             pixelShader.pShaderBytecode = buf;
         }
     }   
@@ -429,35 +495,72 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     mini::MeshLibrary meshLibrary;
     meshLibrary.Initialize(d3dDevice, 1024);
 
-    char* meshDataBuf = nullptr;   // @note we share an allocation for vertices and indices
-    mini::MeshData meshData;
-    static_assert(sizeof(uint16_t) == sizeof(PAR_SHAPES_T));
+    mini::MeshResourceHandle cubeMesh, sphereMesh;
 
-    {   // create a procedural cube mesh, copy out positions and normals 
-        auto cubeMesh = par_shapes_create_cube();
-        par_shapes_translate(cubeMesh, -0.5f, -0.5f, -0.5f);
-        par_shapes_unweld(cubeMesh, true);
-        par_shapes_compute_normals(cubeMesh);
-        
-        meshData.vertexDataSize = sizeof(float) * 3 * (cubeMesh->npoints * 2);
-        meshData.vertexStride = sizeof(float) * 6;
-        
-        meshData.indexDataSize = sizeof(uint16_t) * 3 * cubeMesh->ntriangles;
+    {
+        char* meshDataBuf = nullptr;   // @note we share an allocation for vertices and indices
+        mini::MeshData meshData;
+        static_assert(sizeof(uint16_t) == sizeof(PAR_SHAPES_T));
 
-        meshData.vertexData = meshDataBuf = reinterpret_cast<char*>(malloc(meshData.vertexDataSize + meshData.indexDataSize));
-        for (auto i = 0; i < cubeMesh->npoints; ++i) {
+        {   // create a procedural cube mesh, copy out positions and normals 
+            auto mesh = par_shapes_create_cube();
+            par_shapes_translate(mesh, -0.5f, -0.5f, -0.5f);
+            par_shapes_unweld(mesh, true);
+            par_shapes_compute_normals(mesh);
 
-            auto writePtr = meshData.vertexData + meshData.vertexStride * i;
-            memcpy(writePtr, cubeMesh->points + i * 3, sizeof(float) * 3);
-            writePtr += sizeof(float) * 3;
-            memcpy(writePtr, cubeMesh->normals + i * 3, sizeof(float) * 3);
+            meshData.vertexDataSize = sizeof(float) * 3 * (mesh->npoints * 2);
+            meshData.vertexStride = sizeof(float) * 6;
+
+            meshData.indexDataSize = sizeof(uint16_t) * 3 * mesh->ntriangles;
+
+            meshData.vertexData = meshDataBuf = reinterpret_cast<char*>(malloc(meshData.vertexDataSize + meshData.indexDataSize));
+            for (auto i = 0; i < mesh->npoints; ++i) {
+
+                auto writePtr = meshData.vertexData + meshData.vertexStride * i;
+                memcpy(writePtr, mesh->points + i * 3, sizeof(float) * 3);
+                writePtr += sizeof(float) * 3;
+                memcpy(writePtr, mesh->normals + i * 3, sizeof(float) * 3);
+            }
+            meshData.indexData = meshDataBuf + meshData.vertexDataSize;
+            memcpy(meshData.indexData, mesh->triangles, meshData.indexDataSize);
         }
-        meshData.indexData = meshDataBuf + meshData.vertexDataSize;
-        memcpy(meshData.indexData, cubeMesh->triangles, meshData.indexDataSize);
+
+        cubeMesh = meshLibrary.AllocateWithData(meshData);
+        free(meshDataBuf);  // @note we can free our mesh data here since we don't have a reason to keep it around any longer
     }
 
-    auto cubeMesh = meshLibrary.AllocateWithData(meshData);
-    free(meshDataBuf);  // @note we can free our mesh data here since we don't have a reason to keep it around any longer
+    {
+        char* meshDataBuf = nullptr;   // @note we share an allocation for vertices and indices
+        mini::MeshData meshData;
+        static_assert(sizeof(uint16_t) == sizeof(PAR_SHAPES_T));
+
+        {   // create a procedural cube mesh, copy out positions and normals 
+            auto mesh = par_shapes_create_subdivided_sphere(2);
+            par_shapes_scale(mesh, 0.5f, 0.5f, 0.5f);
+            //par_shapes_translate(cubeMesh, -0.5f, -0.5f, -0.5f);
+            //par_shapes_unweld(cubeMesh, true);
+            par_shapes_compute_normals(mesh);
+
+            meshData.vertexDataSize = sizeof(float) * 3 * (mesh->npoints * 2);
+            meshData.vertexStride = sizeof(float) * 6;
+
+            meshData.indexDataSize = sizeof(uint16_t) * 3 * mesh->ntriangles;
+
+            meshData.vertexData = meshDataBuf = reinterpret_cast<char*>(malloc(meshData.vertexDataSize + meshData.indexDataSize));
+            for (auto i = 0; i < mesh->npoints; ++i) {
+
+                auto writePtr = meshData.vertexData + meshData.vertexStride * i;
+                memcpy(writePtr, mesh->points + i * 3, sizeof(float) * 3);
+                writePtr += sizeof(float) * 3;
+                memcpy(writePtr, mesh->normals + i * 3, sizeof(float) * 3);
+            }
+            meshData.indexData = meshDataBuf + meshData.vertexDataSize;
+            memcpy(meshData.indexData, mesh->triangles, meshData.indexDataSize);
+        }
+
+        sphereMesh = meshLibrary.AllocateWithData(meshData);
+        free(meshDataBuf);  // @note we can free our mesh data here since we don't have a reason to keep it around any longer
+    }
 
     UINT64 frameFenceValue = 0;
     ID3D12Fence* frameFence = nullptr;
@@ -485,7 +588,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     for(auto i = -3; i < 6; ++i)
     {
         auto& mesh = meshes.emplace_back();
-        mesh.resourceHandle = cubeMesh;
+        mesh.resourceHandle = i % 2 == 0 ? cubeMesh : sphereMesh;
         mesh.transform.position = mini::math::vec3f_t(i * 1.5f, 0.0f, 0.0f);
     }
 

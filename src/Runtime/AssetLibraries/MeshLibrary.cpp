@@ -1,10 +1,15 @@
 #include "MeshLibrary.h"
 #include <Runtime/common.h>
 
+
 #define WIN32_LEAN_AND_MEAN
 #define VC_EXTRA_LEAN
 #define NOMINMAX
 #include <d3d12.h>
+
+#pragma warning(push, 0)
+#include <Runtime/par_shapes-h.h>
+#pragma warning(pop)
 
 // @todo use generational handle instead of straight index to detect use after free
 struct mini::MeshPool
@@ -25,9 +30,6 @@ bool mini::MeshLibrary::Initialize(ID3D12Device* device, uint32_t poolSize)
     m_pool->elements = new MeshPool::Element[poolSize];
     m_pool->size = poolSize;
 
-    m_pool->elements[0].isUsed = true;  // @note index 0 is reserved for error case
-    // @todo create procedural error mesh
-
     // create a descriptor heap for vertex and index buffer SRVs 
     D3D12_DESCRIPTOR_HEAP_DESC desc = {};
     desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -39,6 +41,43 @@ bool mini::MeshLibrary::Initialize(ID3D12Device* device, uint32_t poolSize)
     if (FAILED(res)) {
         return false;
     }
+
+
+    // @note reserve first element for a fallback mesh so missing resources are visually represented in the scene
+    m_pool->elements[0].isUsed = true;  
+    {
+        char* meshDataBuf = nullptr;   // @note we share an allocation for vertices and indices
+        mini::MeshData meshData;
+        static_assert(sizeof(uint16_t) == sizeof(PAR_SHAPES_T));
+
+        {   // create a procedural cube mesh, copy out positions and normals 
+            auto mesh = par_shapes_create_cube();
+            par_shapes_translate(mesh, -0.5f, -0.5f, -0.5f);
+            par_shapes_unweld(mesh, true);
+            par_shapes_compute_normals(mesh);
+
+            meshData.vertexDataSize = sizeof(float) * 3 * (mesh->npoints * 2);
+            meshData.vertexStride = sizeof(float) * 6;
+
+            meshData.indexDataSize = sizeof(uint16_t) * 3 * mesh->ntriangles;
+
+            meshData.vertexData = meshDataBuf = reinterpret_cast<char*>(malloc(meshData.vertexDataSize + meshData.indexDataSize));
+            for (auto i = 0; i < mesh->npoints; ++i) {
+
+                auto writePtr = meshData.vertexData + meshData.vertexStride * i;
+                memcpy(writePtr, mesh->points + i * 3, sizeof(float) * 3);
+                writePtr += sizeof(float) * 3;
+                memcpy(writePtr, mesh->normals + i * 3, sizeof(float) * 3);
+            }
+            meshData.indexData = meshDataBuf + meshData.vertexDataSize;
+            memcpy(meshData.indexData, mesh->triangles, meshData.indexDataSize);
+        }
+
+        SetData({ 0 }, meshData);
+        free(meshDataBuf);  // @note we can free our mesh data here since we don't have a reason to keep it around any longer
+    }
+
+   
     //
     return true;
 }
