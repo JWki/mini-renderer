@@ -20,7 +20,7 @@ struct Vertex
 };
 
 StructuredBuffer<Vertex> vertices : register(t0);
-Buffer<uint> indices : register(t1); 
+StructuredBuffer<uint> indices : register(t1); 
 
 VS_Out VSMain(uint id: SV_VertexID)
 {

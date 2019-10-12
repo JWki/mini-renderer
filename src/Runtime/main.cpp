@@ -102,6 +102,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     return res;
 } 
 
+
 /*
 
 */
@@ -434,7 +435,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         
         indexBufferSize = sizeof(uint16_t) * 3 * cubeMesh->ntriangles;
 
-        vertices = meshData = reinterpret_cast<char*>(malloc(vertexBufferSize + indexBufferSize));
+        vertices = meshData = static_cast<char*>(malloc(vertexBufferSize + indexBufferSize));
         for (auto i = 0; i < cubeMesh->npoints; ++i) {
 
             auto writePtr = vertices + vertexBufferStride * i;
@@ -492,7 +493,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         heapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
         heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
         heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-
+        
         D3D12_RESOURCE_DESC desc = {};
         desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
         desc.Alignment = 0;
