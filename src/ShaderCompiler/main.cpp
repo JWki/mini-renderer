@@ -129,7 +129,7 @@ int wmain(int argc, wchar_t* argv[])
         sc::CompiledShader shader;
         if(!sourceFile.vsEntryPoint.empty())
         {
-            auto res = D3DCompile(sourceFile.strippedSource.c_str(), sourceFile.strippedSource.length(), "Vertex Shader", nullptr, nullptr, sourceFile.vsEntryPoint.c_str(), "vs_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &shader.vsBlob, &shader.errorBlob);
+            auto res = D3DCompile(sourceFile.strippedSource.c_str(), sourceFile.strippedSource.length(), "Vertex Shader", nullptr, nullptr, sourceFile.vsEntryPoint.c_str(), "vs_5_1", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &shader.vsBlob, &shader.errorBlob);
             if(FAILED(res))
             {
                 printf("Failed to compile vertex shader\n%.*s\n", static_cast<int>(shader.errorBlob->GetBufferSize()), static_cast<char const*>(shader.errorBlob->GetBufferPointer()));
@@ -141,7 +141,7 @@ int wmain(int argc, wchar_t* argv[])
         }
         if(!sourceFile.psEntryPoint.empty())
         {
-            auto res = D3DCompile(sourceFile.strippedSource.c_str(), sourceFile.strippedSource.length(), "Vertex Shader", nullptr, nullptr, sourceFile.psEntryPoint.c_str(), "ps_5_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &shader.psBlob, &shader.errorBlob);
+            auto res = D3DCompile(sourceFile.strippedSource.c_str(), sourceFile.strippedSource.length(), "Vertex Shader", nullptr, nullptr, sourceFile.psEntryPoint.c_str(), "ps_5_1", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &shader.psBlob, &shader.errorBlob);
             if (FAILED(res))
             {
                 printf("Failed to compile pixel shader\n%.*s\n", static_cast<int>(shader.errorBlob->GetBufferSize()), static_cast<char const*>(shader.errorBlob->GetBufferPointer()));
