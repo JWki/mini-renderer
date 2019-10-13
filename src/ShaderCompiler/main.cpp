@@ -4,6 +4,7 @@
 #include <sstream>
 #include <stdio.h>
 
+#include <Runtime/util.h>
 #define WIN32_LEAN_AND_MEAN
 #include <d3dcompiler.h>
 #pragma comment(lib, "d3dcompiler.lib")
@@ -34,49 +35,6 @@ namespace mini
         };
     }
 
-
-    class ByteStream
-    {
-        char* m_buffer = nullptr;
-        uint32_t    m_offset = 0;
-        uint32_t    m_bufferSize = 0;
-    public:
-        ByteStream() = default;
-        ByteStream(void* buffer, uint32_t bufferSize)
-            : m_buffer(reinterpret_cast<char*>(buffer)), m_offset(0), m_bufferSize(bufferSize) {}
-
-        uint32_t    GetOffset() const { return m_offset; }
-        char*       GetBuffer() const { return m_buffer; }
-
-        template <class T>
-        void Read(T* target)
-        {
-            ReadBytes(target, sizeof(T));
-        }
-
-        void ReadBytes(void* target, uint32_t numBytes)
-        {
-            numBytes = numBytes <= m_bufferSize - m_offset ? numBytes : m_bufferSize - m_offset;
-            if (target != nullptr && numBytes > 0)
-            {
-                memcpy(target, m_buffer + m_offset, numBytes);
-            }
-            m_offset += numBytes;
-        }
-
-        template <class T>
-        void Write(T const& source)
-        {
-            WriteBytes(&source, sizeof(T));
-        }
-
-        void WriteBytes(void const* source, uint32_t numBytes)
-        {
-            numBytes = numBytes <= m_bufferSize - m_offset ? numBytes : m_bufferSize - m_offset;
-            memcpy(m_buffer + m_offset, source, numBytes);
-            m_offset += numBytes;
-        }
-    };
 }
 
 //
