@@ -20,6 +20,7 @@
 #include <Runtime/AssetLibraries/MeshLibrary.h>
 #include <Runtime/Renderables/StaticMeshRenderer.h>
 #include <Runtime/util.h>
+#include <Runtime/Resources/ResourceManager.h>
 
 
 #define WIN32_LEAN_AND_MEAN
@@ -138,7 +139,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
             MINI_ASSERT(SUCCEEDED(res), "Failed to get description for GPU adapter %lu", i);
         }
 
-        auto minimumFeatureLevel = D3D_FEATURE_LEVEL_12_0;  // D3D11_FEATURE_LEVEL_12_0;
+        auto minimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;  // D3D11_FEATURE_LEVEL_12_0;
         auto res = D3D12CreateDevice(0, minimumFeatureLevel, IID_PPV_ARGS(&d3dDevice));
         MINI_ASSERT(SUCCEEDED(res), "Failed to create D3D12 device");
         if (FAILED(res)) {
@@ -393,6 +394,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     /*
         ***
     */
+    mini::ResourceManager<1024> resourceManager;
     mini::MeshLibrary meshLibrary;
     meshLibrary.Initialize(d3dDevice, 1024);
 
@@ -426,8 +428,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
             memcpy(meshData.indexData, mesh->triangles, meshData.indexDataSize);
         }
 
-        cubeMesh = meshLibrary.AllocateWithData(meshData);
+        cubeMesh = meshLibrary.AllocateWithData({ 0 }, meshData);
         free(meshDataBuf);  // @note we can free our mesh data here since we don't have a reason to keep it around any longer
+
     }
 
     {
@@ -459,7 +462,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
             memcpy(meshData.indexData, mesh->triangles, meshData.indexDataSize);
         }
 
-        sphereMesh = meshLibrary.AllocateWithData(meshData);
+        sphereMesh = meshLibrary.AllocateWithData({ 1 }, meshData);
         free(meshDataBuf);  // @note we can free our mesh data here since we don't have a reason to keep it around any longer
     }
 

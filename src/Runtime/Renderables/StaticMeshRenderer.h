@@ -19,5 +19,4 @@ namespace mini
     };
 
     struct StaticMeshHandle { uint32_t handle = 0; };
-
 }

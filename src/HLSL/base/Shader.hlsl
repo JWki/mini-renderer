@@ -22,8 +22,9 @@ struct Vertex
     float3 normal;
 };
 
-StructuredBuffer<Vertex> vertices : register(t0, space0);
-Buffer<uint> indices : register(t1, space0); 
+StructuredBuffer<Vertex> vertices : register(t0);
+StructuredBuffer<uint> indices : register(t1); 
+
 
 VS_Out VSMain(uint id: SV_VertexID)
 {

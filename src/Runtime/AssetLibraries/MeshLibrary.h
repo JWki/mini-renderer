@@ -33,6 +33,7 @@ namespace mini
 
     struct  MeshPool;
 
+    struct ResourceID;
 
     class MeshLibrary
     {
@@ -43,10 +44,11 @@ namespace mini
 
         bool                Initialize(ID3D12Device* device, uint32_t poolSize);
 
-        MeshResourceHandle  Allocate() const;
-        MeshResourceHandle  AllocateWithData(MeshData const& data);
+        MeshResourceHandle  Allocate(ResourceID const& resourceId) const;
+        MeshResourceHandle  AllocateWithData(ResourceID const& resourceId, MeshData const& data);
         void                SetData(MeshResourceHandle handle, MeshData const& data) const;
         MeshResource const* Lookup(MeshResourceHandle handle) const;
+        MeshResourceHandle  GetHandleForResourceId(ResourceID resourceId) const;
 
         void                Destroy(MeshResourceHandle);
 

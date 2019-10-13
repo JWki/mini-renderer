@@ -1,6 +1,6 @@
 #include "MeshLibrary.h"
 #include <Runtime/common.h>
-
+#include <Runtime/Resources/Resource.h>
 
 #define WIN32_LEAN_AND_MEAN
 #define VC_EXTRA_LEAN
@@ -18,6 +18,7 @@ struct mini::MeshPool
     {
         MeshResource    resource;
         bool            isUsed      = false;
+        ResourceID      resourceId; 
     }                   *elements   = nullptr;;
     uint32_t            size        = 0;
 };
@@ -83,22 +84,23 @@ bool mini::MeshLibrary::Initialize(ID3D12Device* device, uint32_t poolSize)
 }
 
 
-mini::MeshResourceHandle mini::MeshLibrary::Allocate() const
+mini::MeshResourceHandle mini::MeshLibrary::Allocate(ResourceID const& resourceId) const
 {
     for(auto i = 0u; i < m_pool->size; ++i)
     {
         if(m_pool->elements[i].isUsed == false)
         {
             m_pool->elements[i].isUsed = true;
+            m_pool->elements[i].resourceId = resourceId;
             return { i };   
         }
     }
     return MeshResourceHandle();    // @note index 0 is reserved for error case
 }
 
-mini::MeshResourceHandle mini::MeshLibrary::AllocateWithData(MeshData const& data)
+mini::MeshResourceHandle mini::MeshLibrary::AllocateWithData(ResourceID const& resourceId, MeshData const& data)
 {
-    auto handle = Allocate();
+    auto handle = Allocate(resourceId);
     MINI_ASSERT(handle.handle != 0, "Failed to allocate resource slot");
     SetData(handle, data);
     return handle;
@@ -110,6 +112,19 @@ mini::MeshResource const* mini::MeshLibrary::Lookup(MeshResourceHandle handle) c
     if (!m_pool->elements[handle.handle].isUsed) { return nullptr; }
     return &m_pool->elements[handle.handle].resource;
 }
+
+mini::MeshResourceHandle mini::MeshLibrary::GetHandleForResourceId(ResourceID resourceId) const
+{
+    for(auto i = 0u; i < m_pool->size; ++i)
+    {
+        if(m_pool->elements[i].resourceId == resourceId)
+        {
+            return { i };
+        }
+    }
+    return MeshResourceHandle();
+}
+
 
 void mini::MeshLibrary::SetData(MeshResourceHandle handle, MeshData const& data) const
 {
